@@ -35,6 +35,10 @@ endif ()
 find_package(Threads REQUIRED)
 list(APPEND LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+list(APPEND LIBRARIRES Boost::headers)
+
 # include directories and source files
 include_directories(include)
 set(SOURCES
@@ -42,11 +46,11 @@ set(SOURCES
 
 # executable
 add_library(ringbuffer ${SOURCES})
-target_link_libraries(ringbuffer ${LIBRARIES})
+target_link_libraries(ringbuffer PRIVATE ${LIBRARIES})
 
-INSTALL(
-  TARGETS ringbuffer
-  DIRECTORY ${CMAKE_SOURCE_DIR}/include
-  FILES_MATCHING PATTERN "*.h*"
-  INCLUDES DESTINATION include
-  LIBRARY DESTINATION lib)
+#INSTALL(
+#  TARGETS ringbuffer
+#  DIRECTORY ${CMAKE_SOURCE_DIR}/include
+#  FILES_MATCHING PATTERN "*.h*"
+#  INCLUDES DESTINATION include
+#  LIBRARY DESTINATION lib)

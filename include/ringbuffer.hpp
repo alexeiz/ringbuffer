@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <Util/Ringbufferstore.hpp>
+#include "ringbufferstore.hpp"
 
 #include <boost/iterator/iterator_facade.hpp>
 
@@ -255,4 +255,4 @@ private:
 
 }  // namespace tsq
 
-#include "Ringbuffer.inl.hpp"
+#include "ringbuffer.inl.hpp"

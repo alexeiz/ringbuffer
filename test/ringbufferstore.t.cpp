@@ -1,4 +1,4 @@
-#include <Util/Ringbufferstore.hpp>
+#include "ringbufferstore.hpp"
 
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE test_ringbufferstore

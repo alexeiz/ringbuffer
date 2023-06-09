@@ -1,6 +1,7 @@
 build/
 .vscode/
 .gdb_history
+CMakeUserPresets.json
 
 # vim
 .*.swp
