@@ -14,7 +14,7 @@
 #include <utility>
 #include <stdexcept>
 
-namespace tsq
+namespace tla
 {
 namespace detail
 {
@@ -253,6 +253,6 @@ private:
     T mutable               value_;
 };
 
-}  // namespace tsq
+}  // namespace tla
 
 #include "ringbuffer.inl.hpp"

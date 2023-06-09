@@ -5,7 +5,7 @@
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
-namespace tsq
+namespace tla
 {
 namespace ipc = boost::interprocess;
 
@@ -96,4 +96,4 @@ private:
     ipc::mode_t               mode_;
 };
 
-}  // namespace tsq
+}  // namespace tla

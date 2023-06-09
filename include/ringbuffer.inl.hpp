@@ -2,7 +2,7 @@
 #include <limits>
 #include <unistd.h>
 
-namespace tsq
+namespace tla
 {
 
 // ring_buffer implementation
@@ -186,4 +186,4 @@ ring_buffer_iterator<T> ring_buffer_reader<T>::end()
     return {};
 }
 
-}  // namespace tsq
+}  // namespace tla

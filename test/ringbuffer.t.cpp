@@ -7,6 +7,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 
+using namespace tla;
+
 namespace
 {
 struct shm_guard
@@ -29,7 +31,7 @@ char const * const rb_name = "ring_buffer_test";
 TEST_CASE("create_ring_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<int> rb{rb_name, rb_cap};
+    ring_buffer<int> rb{rb_name, rb_cap};
 
     REQUIRE(rb.capacity() == rb_cap);
     REQUIRE(rb.size() == 0);
@@ -40,7 +42,7 @@ TEST_CASE("push_items_into_ring_buffer", "[ringbuffer]")
 {
     std::size_t const cap = 256;
     shm_guard _{rb_name};
-    tsq::ring_buffer<char> rb{rb_name, cap};
+    ring_buffer<char> rb{rb_name, cap};
 
     for (int i = 0; i != cap; ++i)
     {
@@ -68,7 +70,7 @@ TEST_CASE("emplace_items_into_ring_buffer", "[ringbufer]")
 {
     std::size_t const cap = 256;
     shm_guard _{rb_name};
-    tsq::ring_buffer<TestItem> rb{rb_name, cap};
+    ring_buffer<TestItem> rb{rb_name, cap};
 
     for (int i = 0; i != cap; ++i)
     {
@@ -84,8 +86,8 @@ TEST_CASE("emplace_items_into_ring_buffer", "[ringbufer]")
 TEST_CASE("create_ring_buffer_reader", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<int> rbw{rb_name, rb_cap};
-    tsq::ring_buffer_reader<int> rbr{rb_name};
+    ring_buffer<int> rbw{rb_name, rb_cap};
+    ring_buffer_reader<int> rbr{rb_name};
 
     REQUIRE(rbr.size() == 0);
     REQUIRE(rbr.empty());
@@ -94,8 +96,8 @@ TEST_CASE("create_ring_buffer_reader", "[ringbuffer]")
 TEST_CASE("get_item_from_read_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<TestItem> rbw{rb_name, rb_cap};
-    tsq::ring_buffer_reader<TestItem> rbr{rb_name};
+    ring_buffer<TestItem> rbw{rb_name, rb_cap};
+    ring_buffer_reader<TestItem> rbr{rb_name};
 
     rbw.emplace(0x1234abcd, 3.1415926);
     REQUIRE(rbr.size() == 1);
@@ -108,8 +110,8 @@ TEST_CASE("get_item_from_read_buffer", "[ringbuffer]")
 TEST_CASE("next_item_in_read_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<TestItem> rbw{rb_name, rb_cap};
-    tsq::ring_buffer_reader<TestItem> rbr{rb_name};
+    ring_buffer<TestItem> rbw{rb_name, rb_cap};
+    ring_buffer_reader<TestItem> rbr{rb_name};
 
     rbw.emplace(0x1234abcd, 3.1415926);
     REQUIRE(rbr.size() == 1);
@@ -123,8 +125,8 @@ TEST_CASE("next_item_in_read_buffer", "[ringbuffer]")
 TEST_CASE("next_n_items_in_read_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<int> rbw{rb_name, rb_cap};
-    tsq::ring_buffer_reader<int> rbr{rb_name};
+    ring_buffer<int> rbw{rb_name, rb_cap};
+    ring_buffer_reader<int> rbr{rb_name};
 
     // test writing `count` and jumping over `count`
     int count = 10;
@@ -158,8 +160,8 @@ TEST_CASE("reader_incompatible_with_writer", "[ringbuffer]")
 {
     auto test_expr = []{
         shm_guard _{rb_name};
-        tsq::ring_buffer<TestItem> rbw{rb_name, rb_cap};
-        tsq::ring_buffer_reader<int> rbr{rb_name};  // TestItem != int
+        ring_buffer<TestItem> rbw{rb_name, rb_cap};
+        ring_buffer_reader<int> rbr{rb_name};  // TestItem != int
     };
 
     REQUIRE_THROWS_AS(test_expr(), std::runtime_error);
@@ -168,8 +170,8 @@ TEST_CASE("reader_incompatible_with_writer", "[ringbuffer]")
 TEST_CASE("interleaved_write_and_read", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<int> rbw{rb_name, rb_cap};
-    tsq::ring_buffer_reader<int> rbr{rb_name};
+    ring_buffer<int> rbw{rb_name, rb_cap};
+    ring_buffer_reader<int> rbr{rb_name};
 
     int write_read_diff = 0;
     for (int i = 0; i != rb_cap * rb_cap; ++i)
@@ -186,8 +188,8 @@ TEST_CASE("interleaved_write_and_read", "[ringbuffer]")
 TEST_CASE("read_after_write_overflow", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<int> rbw{rb_name, rb_cap};
-    tsq::ring_buffer_reader<int> rbr{rb_name};
+    ring_buffer<int> rbw{rb_name, rb_cap};
+    ring_buffer_reader<int> rbr{rb_name};
 
     // get close to overflow
     for (int i = 0; i != rb_cap - 1; ++i)
@@ -225,8 +227,8 @@ TEST_CASE("read_after_write_overflow", "[ringbuffer]")
 TEST_CASE("read_ring_buffer_with_iterator", "[ringbuffer]")
 {
     shm_guard _{rb_name};
-    tsq::ring_buffer<int> rbw{rb_name, rb_cap};
-    tsq::ring_buffer_reader<int> rbr{rb_name};
+    ring_buffer<int> rbw{rb_name, rb_cap};
+    ring_buffer_reader<int> rbr{rb_name};
 
     for (int i = 0; i != rb_cap - 1; ++i)
         rbw.push(i);

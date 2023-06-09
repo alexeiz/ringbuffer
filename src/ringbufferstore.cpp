@@ -1,8 +1,8 @@
 #include "ringbuffer.hpp"
 #include "ringbufferstore.hpp"
 
-namespace tsq
+namespace tla
 {
 const ring_buffer_store::create_t ring_buffer_store::create{};
 const ring_buffer_store::open_t ring_buffer_store::open{};
-}  // namespace tsq
+}  // namespace tla

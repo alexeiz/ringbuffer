@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 using namespace std;
+using namespace tla;
 
 int main(int argc, char * argv[])
 try
@@ -10,7 +11,7 @@ try
     if (argc < 2)
         return 0;
 
-    tsq::ring_buffer_reader<int> rb{argv[1]};
+    ring_buffer_reader<int> rb{argv[1]};
     int pos = 0;
     for (int i : rb)
         cout << pos++ << '\t' << i << endl;

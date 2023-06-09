@@ -32,6 +32,8 @@ using namespace std::literals;
 namespace po = boost::program_options;
 namespace ipc = boost::interprocess;
 
+using namespace tla;
+
 struct shm_guard
 {
     shm_guard(char const * name)
@@ -202,7 +204,7 @@ void run_reader_impl()
 
     log_msg("reader ", getpid(), ":", this_thread::get_id(), " started");
 
-    tsq::ring_buffer_reader<Item> rb{ring_buffer_name};
+    ring_buffer_reader<Item> rb{ring_buffer_name};
     int read_items = 0;
     int gaps = 0;
     int errors = 0;
@@ -282,7 +284,7 @@ template <typename Item>
 void run_writer_impl(unsigned readers, unsigned rb_size)
 {
     shm_guard _{ring_buffer_name};
-    tsq::ring_buffer<Item> rb{ring_buffer_name, rb_size};
+    ring_buffer<Item> rb{ring_buffer_name, rb_size};
 
     log_msg("writer started");
     reader_sync.signal(readers);
