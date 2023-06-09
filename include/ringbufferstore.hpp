@@ -49,8 +49,8 @@ public:
     class create_t {};
     class open_t {};
 
-    static const create_t create;
-    static const open_t   open;
+    static constexpr create_t create{};
+    static constexpr open_t   open{};
 
 public:
     ring_buffer_store(ring_buffer_store const &)             = delete;
