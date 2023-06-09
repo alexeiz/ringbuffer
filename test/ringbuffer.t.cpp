@@ -4,10 +4,7 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_MODULE test_ringbuffer
-#include <boost/test/included/unit_test.hpp>
-
+#include <catch2/catch_test_macros.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 
 namespace
@@ -29,17 +26,17 @@ char const * const rb_name = "ring_buffer_test";
 }  // anonymous namespace
 
 
-BOOST_AUTO_TEST_CASE(create_ring_buffer)
+TEST_CASE("create_ring_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<int> rb{rb_name, rb_cap};
 
-    BOOST_CHECK_EQUAL(rb.capacity(), rb_cap);
-    BOOST_CHECK_EQUAL(rb.size(), 0);
-    BOOST_CHECK(rb.empty());
+    REQUIRE(rb.capacity() == rb_cap);
+    REQUIRE(rb.size() == 0);
+    REQUIRE(rb.empty());
 }
 
-BOOST_AUTO_TEST_CASE(push_items_into_ring_buffer)
+TEST_CASE("push_items_into_ring_buffer", "[ringbuffer]")
 {
     std::size_t const cap = 256;
     shm_guard _{rb_name};
@@ -47,13 +44,13 @@ BOOST_AUTO_TEST_CASE(push_items_into_ring_buffer)
 
     for (int i = 0; i != cap; ++i)
     {
-        BOOST_CHECK_EQUAL(rb.size(), i);
+        REQUIRE(rb.size() == i);
         rb.push(char(i));
     }
 
-    BOOST_CHECK_EQUAL(rb.capacity(), cap);
-    BOOST_CHECK_EQUAL(rb.size(), cap - 1);
-    BOOST_CHECK(!rb.empty());
+    REQUIRE(rb.capacity() == cap);
+    REQUIRE(rb.size() == cap - 1);
+    REQUIRE(!rb.empty());
 }
 
 struct TestItem
@@ -67,7 +64,7 @@ struct TestItem
     double b_;
 };
 
-BOOST_AUTO_TEST_CASE(emplace_items_into_ring_buffer)
+TEST_CASE("emplace_items_into_ring_buffer", "[ringbufer]")
 {
     std::size_t const cap = 256;
     shm_guard _{rb_name};
@@ -75,55 +72,55 @@ BOOST_AUTO_TEST_CASE(emplace_items_into_ring_buffer)
 
     for (int i = 0; i != cap; ++i)
     {
-        BOOST_CHECK_EQUAL(rb.size(), i);
+        REQUIRE(rb.size() == i);
         rb.emplace(i, 1.0 + i);
     }
 
-    BOOST_CHECK_EQUAL(rb.capacity(), cap);
-    BOOST_CHECK_EQUAL(rb.size(), cap - 1);
-    BOOST_CHECK(!rb.empty());
+    REQUIRE(rb.capacity() == cap);
+    REQUIRE(rb.size() == cap - 1);
+    REQUIRE(!rb.empty());
 }
 
-BOOST_AUTO_TEST_CASE(create_ring_buffer_reader)
+TEST_CASE("create_ring_buffer_reader", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<int> rbw{rb_name, rb_cap};
     tsq::ring_buffer_reader<int> rbr{rb_name};
 
-    BOOST_CHECK_EQUAL(rbr.size(), 0);
-    BOOST_CHECK(rbr.empty());
+    REQUIRE(rbr.size() == 0);
+    REQUIRE(rbr.empty());
 }
 
-BOOST_AUTO_TEST_CASE(get_item_from_read_buffer)
+TEST_CASE("get_item_from_read_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<TestItem> rbw{rb_name, rb_cap};
     tsq::ring_buffer_reader<TestItem> rbr{rb_name};
 
     rbw.emplace(0x1234abcd, 3.1415926);
-    BOOST_CHECK_EQUAL(rbr.size(), 1);
+    REQUIRE(rbr.size() == 1);
 
     auto item = rbr.get();
-    BOOST_CHECK_EQUAL(item.a_, 0x1234abcd);
-    BOOST_CHECK_EQUAL(item.b_, 3.1415926);
+    REQUIRE(item.a_ == 0x1234abcd);
+    REQUIRE(item.b_ == 3.1415926);
 }
 
-BOOST_AUTO_TEST_CASE(next_item_in_read_buffer)
+TEST_CASE("next_item_in_read_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<TestItem> rbw{rb_name, rb_cap};
     tsq::ring_buffer_reader<TestItem> rbr{rb_name};
 
     rbw.emplace(0x1234abcd, 3.1415926);
-    BOOST_CHECK_EQUAL(rbr.size(), 1);
+    REQUIRE(rbr.size() == 1);
 
     rbr.next();
-    BOOST_CHECK_EQUAL(rbr.size(), 0);
+    REQUIRE(rbr.size() == 0);
     rbr.next();
-    BOOST_CHECK(rbr.empty());
+    REQUIRE(rbr.empty());
 }
 
-BOOST_AUTO_TEST_CASE(next_n_items_in_read_buffer)
+TEST_CASE("next_n_items_in_read_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<int> rbw{rb_name, rb_cap};
@@ -134,30 +131,30 @@ BOOST_AUTO_TEST_CASE(next_n_items_in_read_buffer)
     for (int i = 0; i != count; ++i)
         rbw.push(i);
 
-    BOOST_CHECK_EQUAL(rbr.size(), count);
+    REQUIRE(rbr.size() == count);
     rbr.next(count);
-    BOOST_CHECK_EQUAL(rbr.size(), 0);
+    REQUIRE(rbr.size() == 0);
 
     // test -1 boundary case
     for (int i = 0; i != count; ++i)
         rbw.push(i);
 
-    BOOST_CHECK_EQUAL(rbr.size(), count);
+    REQUIRE(rbr.size() == count);
     rbr.next(count - 1);
-    BOOST_CHECK_EQUAL(rbr.size(), 1);
+    REQUIRE(rbr.size() == 1);
     rbr.next();
-    BOOST_CHECK_EQUAL(rbr.size(), 0);
+    REQUIRE(rbr.size() == 0);
 
     // test +1 boundary case
     for (int i = 0; i != count; ++i)
         rbw.push(i);
 
-    BOOST_CHECK_EQUAL(rbr.size(), count);
+    REQUIRE(rbr.size() == count);
     rbr.next(count + 1);
-    BOOST_CHECK_EQUAL(rbr.size(), 0);
+    REQUIRE(rbr.size() == 0);
 }
 
-BOOST_AUTO_TEST_CASE(reader_incompatible_with_writer)
+TEST_CASE("reader_incompatible_with_writer", "[ringbuffer]")
 {
     auto test_expr = []{
         shm_guard _{rb_name};
@@ -165,15 +162,10 @@ BOOST_AUTO_TEST_CASE(reader_incompatible_with_writer)
         tsq::ring_buffer_reader<int> rbr{rb_name};  // TestItem != int
     };
 
-    auto test_except = [](auto const & e) { return !std::string(e.what()).empty(); };
-
-    BOOST_CHECK_EXCEPTION(
-        test_expr(),
-        std::runtime_error,
-        test_except);
+    REQUIRE_THROWS_AS(test_expr(), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(interleaved_write_and_read)
+TEST_CASE("interleaved_write_and_read", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<int> rbw{rb_name, rb_cap};
@@ -187,11 +179,11 @@ BOOST_AUTO_TEST_CASE(interleaved_write_and_read)
         rbr.next();
     }
 
-    BOOST_CHECK_EQUAL(write_read_diff, 0);
-    BOOST_CHECK(rbr.empty());
+    REQUIRE(write_read_diff == 0);
+    REQUIRE(rbr.empty());
 }
 
-BOOST_AUTO_TEST_CASE(read_after_write_overflow)
+TEST_CASE("read_after_write_overflow", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<int> rbw{rb_name, rb_cap};
@@ -201,15 +193,15 @@ BOOST_AUTO_TEST_CASE(read_after_write_overflow)
     for (int i = 0; i != rb_cap - 1; ++i)
         rbw.push(i);
 
-    BOOST_CHECK_EQUAL(rbr.get(), 0);
+    REQUIRE(rbr.get() == 0);
     rbr.next();
 
     // produce overflow
     rbw.push(rb_cap);
     rbw.push(rb_cap + 1);
-    BOOST_CHECK_NE(rbr.get(), 1);  // skipped some data because of overflow
+    REQUIRE(rbr.get() != 1);  // skipped some data because of overflow
     rbr.next();
-    BOOST_CHECK_LE(rbr.size(), rb_cap - 2);
+    REQUIRE(rbr.size() <= rb_cap - 2);
 
     // push twice as many items as capacity
     for (int i = rb_cap + 2; i != rb_cap + 2 + 2 * rb_cap; ++i)
@@ -218,19 +210,19 @@ BOOST_AUTO_TEST_CASE(read_after_write_overflow)
     int cur_data = rbr.get();
     rbr.next();
     std::size_t cur_size = rbr.size();
-    BOOST_CHECK_LE(cur_size, rb_cap - 2);
+    REQUIRE(cur_size <= rb_cap - 2);
 
     // exhaust all remaining items
     for (std::size_t i = 0; i != cur_size; ++i)
     {
-        BOOST_CHECK_EQUAL(rbr.get(), cur_data + i + 1);
+        REQUIRE(rbr.get() == cur_data + i + 1);
         rbr.next();
     }
 
-    BOOST_CHECK_EQUAL(rbr.size(), 0);
+    REQUIRE(rbr.size() == 0);
 }
 
-BOOST_AUTO_TEST_CASE(read_ring_buffer_with_iterator)
+TEST_CASE("read_ring_buffer_with_iterator", "[ringbuffer]")
 {
     shm_guard _{rb_name};
     tsq::ring_buffer<int> rbw{rb_name, rb_cap};
@@ -242,9 +234,9 @@ BOOST_AUTO_TEST_CASE(read_ring_buffer_with_iterator)
     int i = 0;
     for (auto val : rbr)
     {
-        BOOST_CHECK_EQUAL(val, i);
+        REQUIRE(val == i);
         ++i;
     }
 
-    BOOST_CHECK_EQUAL(i, rb_cap - 1);
+    REQUIRE(i == rb_cap - 1);
 }

@@ -48,6 +48,7 @@ set(SOURCES
 add_library(ringbuffer ${SOURCES})
 target_link_libraries(ringbuffer PRIVATE ${LIBRARIES})
 
+add_subdirectory(test)
 #INSTALL(
 #  TARGETS ringbuffer
 #  DIRECTORY ${CMAKE_SOURCE_DIR}/include
