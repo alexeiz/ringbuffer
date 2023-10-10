@@ -1,11 +1,42 @@
 # ringbuffer
 
-## Configure/build
+## Configure and build the project
 
+Install dependencies:
+```shell
+conan install . --output-folder=build --build=missing -s build_type=Debug
 ```
-$ mkdir build
-$ conan install . --output-folder=build --build=missing -s build_type=Debug
-$ cd build
-$ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE --preset conan-debug ..
-$ cmake --build .
+
+Add the **default** preset to the generated **CMakeUserPresets.json** on the same level as `"include"`:
+```json
+    "configurePresets": [
+        {
+            "name": "default",
+            "inherits": "conan-debug",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": {
+                    "type": "BOOL",
+                    "value": "TRUE"
+                }
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        }
+    ]
+```
+
+Configure and build:
+```shell
+cmake --preset default .
+cmake --build build
 ```
