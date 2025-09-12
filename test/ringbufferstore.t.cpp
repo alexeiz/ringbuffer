@@ -77,3 +77,5 @@ TEST_CASE("fail_open_ring_buffer_store", "[ringbufferstore]")
     auto test_expr = []{ ring_buffer_store rbs{ring_buffer_store::open, shm_file}; };
     REQUIRE_THROWS_AS(test_expr(), boost::interprocess::interprocess_exception);
 }
+
+

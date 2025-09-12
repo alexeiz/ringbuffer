@@ -242,3 +242,5 @@ TEST_CASE("read_ring_buffer_with_iterator", "[ringbuffer]")
 
     REQUIRE(i == rb_cap - 1);
 }
+
+

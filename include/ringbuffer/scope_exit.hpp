@@ -51,3 +51,5 @@ struct scope_guard_tag {
 #define scope(condition)  scope_ ## condition
 #define scope_exit        auto const & SCOPE_CONCAT_(scope_guard_obj_, __COUNTER__)         \
                           __attribute__ ((unused)) = util::detail::scope_guard_tag{} + [&]
+
+
