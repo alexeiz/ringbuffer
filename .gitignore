@@ -39,3 +39,4 @@ CMakeUserPresets.json
 *.exe
 *.out
 *.app
+.aider*
