@@ -20,5 +20,3 @@ catch (exception & e)
 {
     cerr << "error: " << e.what() << endl;
 }
-
-

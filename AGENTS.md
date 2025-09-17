@@ -36,5 +36,3 @@ cmake --build build
 - Capacity must be power of 2, items must be trivially destructible
 - Single producer, multiple consumers pattern
 - Use `ring_buffer_store` for shared memory management
-
-

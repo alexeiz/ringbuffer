@@ -33,26 +33,21 @@ ring_buffer<T>::ring_buffer(char const * name, std::size_t capacity, bool remove
 
     // initialize data fields
     store_ = std::make_shared<ring_buffer_store>(ring_buffer_store::create, name, store_size, remove_on_close);
-    header_ = new (store_->address()) header_t{detail::ring_buffer_version,
-                                               sizeof(T),
-                                               data_offset,
-                                               capacity_};
+    header_ = new (store_->address()) header_t{detail::ring_buffer_version, sizeof(T), data_offset, capacity_};
     data_ = reinterpret_cast<data_t *>(static_cast<char *>(store_->address()) + data_offset);
 }
 
 template <typename T>
-inline
-void ring_buffer<T>::push(T const & val)
+inline void ring_buffer<T>::push(T const & val)
 {
-    push_helper([&val](data_t * where){ new(where) T(val); });
+    push_helper([&val](data_t * where) { new (where) T(val); });
 }
 
 template <typename T>
-template <typename ...Args>
-inline
-void ring_buffer<T>::emplace(Args && ... args)
+template <typename... Args>
+inline void ring_buffer<T>::emplace(Args &&... args)
 {
-    push_helper([&args...](data_t * where){ new (where) T{std::forward<Args>(args)...}; });
+    push_helper([&args...](data_t * where) { new (where) T{std::forward<Args>(args)...}; });
 }
 
 template <typename T>
@@ -79,8 +74,7 @@ void ring_buffer<T>::push_helper(Init init)
 }
 
 template <typename T>
-inline
-std::size_t ring_buffer<T>::size() const
+inline std::size_t ring_buffer<T>::size() const
 {
     auto pos = header_->positions.load(std::memory_order_relaxed);
     return header_t::last(pos) - header_t::first(pos);  // correct even after overflow
@@ -110,8 +104,7 @@ ring_buffer_reader<T>::ring_buffer_reader(char const * name)
 }
 
 template <typename T>
-inline
-std::size_t ring_buffer_reader<T>::size() const
+inline std::size_t ring_buffer_reader<T>::size() const
 {
     auto pos = header_->positions.load(std::memory_order_acquire);
     adjust_read_pos(pos);
@@ -121,8 +114,7 @@ std::size_t ring_buffer_reader<T>::size() const
 }
 
 template <typename T>
-inline
-void ring_buffer_reader<T>::adjust_read_pos(unsigned long pos) const
+inline void ring_buffer_reader<T>::adjust_read_pos(unsigned long pos) const
 {
     unsigned first = header_t::first(pos);
     if (first > read_pos_)
@@ -134,8 +126,7 @@ void ring_buffer_reader<T>::adjust_read_pos(unsigned long pos) const
 }
 
 template <typename T>
-inline
-void ring_buffer_reader<T>::spin_wait(unsigned long pos) const
+inline void ring_buffer_reader<T>::spin_wait(unsigned long pos) const
 {
     while (read_pos_ >= header_t::last(pos))
     {
@@ -166,26 +157,21 @@ T ring_buffer_reader<T>::get() const
 }
 
 template <typename T>
-inline
-void ring_buffer_reader<T>::next(std::size_t n)
+inline void ring_buffer_reader<T>::next(std::size_t n)
 {
     read_pos_ += n;
 }
 
 template <typename T>
-inline
-ring_buffer_iterator<T> ring_buffer_reader<T>::begin()
+inline ring_buffer_iterator<T> ring_buffer_reader<T>::begin()
 {
     return ring_buffer_iterator<T>{*this};
 }
 
 template <typename T>
-inline
-ring_buffer_iterator<T> ring_buffer_reader<T>::end()
+inline ring_buffer_iterator<T> ring_buffer_reader<T>::end()
 {
     return {};
 }
 
 }  // namespace tla
-
-

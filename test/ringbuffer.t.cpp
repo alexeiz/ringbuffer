@@ -15,15 +15,16 @@ struct shm_guard
 {
     shm_guard(char const * name)
         : name_{name}
-    { boost::interprocess::shared_memory_object::remove(name_); }
+    {
+        boost::interprocess::shared_memory_object::remove(name_);
+    }
 
-    ~shm_guard()
-    { boost::interprocess::shared_memory_object::remove(name_); }
+    ~shm_guard() { boost::interprocess::shared_memory_object::remove(name_); }
 
     char const * name_;
 };
 
-std::size_t const  rb_cap  = 4096;
+std::size_t const rb_cap = 4096;
 char const * const rb_name = "ring_buffer_test";
 }  // anonymous namespace
 
@@ -62,7 +63,7 @@ struct TestItem
         , b_{b}
     {}
 
-    int    a_;
+    int a_;
     double b_;
 };
 
@@ -158,7 +159,7 @@ TEST_CASE("next_n_items_in_read_buffer", "[ringbuffer]")
 
 TEST_CASE("reader_incompatible_with_writer", "[ringbuffer]")
 {
-    auto test_expr = []{
+    auto test_expr = [] {
         shm_guard _{rb_name};
         ring_buffer<TestItem> rbw{rb_name, rb_cap};
         ring_buffer_reader<int> rbr{rb_name};  // TestItem != int
@@ -242,5 +243,3 @@ TEST_CASE("read_ring_buffer_with_iterator", "[ringbuffer]")
 
     REQUIRE(i == rb_cap - 1);
 }
-
-

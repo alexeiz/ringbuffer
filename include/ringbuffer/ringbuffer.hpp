@@ -19,7 +19,7 @@ namespace tla
 namespace detail
 {
 // constants
-static constexpr int         ring_buffer_version        = 1;
+static constexpr int ring_buffer_version = 1;
 static constexpr std::size_t ring_buffer_cache_linesize = 64;
 
 // ring buffer header information
@@ -36,13 +36,16 @@ struct ring_buffer_header
     union position_t
     {
         unsigned long lpos;
-        unsigned      upos[2];
+        unsigned upos[2];
 
-        position_t(unsigned long p)        : lpos{p}    {}
-        position_t(unsigned f, unsigned s) : upos{f, s} {}
+        position_t(unsigned long p)
+            : lpos{p}
+        {}
+        position_t(unsigned f, unsigned s)
+            : upos{f, s}
+        {}
 
-        static_assert(sizeof(unsigned long) >= 2 * sizeof(unsigned),
-                      "two counters should fit into one long value");
+        static_assert(sizeof(unsigned long) >= 2 * sizeof(unsigned), "two counters should fit into one long value");
     };
 
     static unsigned first(unsigned long pos)
@@ -63,11 +66,11 @@ struct ring_buffer_header
         return p.lpos;
     }
 
-    int                        version;     ///< version of the ring buffer to ensure reader/write compatibility
-    std::size_t                data_size;   ///< size (in bytes) of data items inside the ring buffer
-    std::size_t                data_offset; ///< offset at which data items start
-    std::size_t                capacity;    ///< maximum number of items the ring buffer can contain
-    std::atomic<unsigned long> positions;   ///< combined first/last element positions
+    int version;                           ///< version of the ring buffer to ensure reader/write compatibility
+    std::size_t data_size;                 ///< size (in bytes) of data items inside the ring buffer
+    std::size_t data_offset;               ///< offset at which data items start
+    std::size_t capacity;                  ///< maximum number of items the ring buffer can contain
+    std::atomic<unsigned long> positions;  ///< combined first/last element positions
 };
 
 // ring buffer data item
@@ -77,7 +80,7 @@ struct ring_buffer_data
     union
     {
         std::aligned_storage_t<sizeof(T), ring_buffer_cache_linesize> alignement;
-        T                                                             item;
+        T item;
     };
 };
 
@@ -113,8 +116,8 @@ public:
     void push(T const & val);
 
     /// Emplace an item to the end of the queue by constructing it with `args` arguments.
-    template <typename ...Args>
-    void emplace(Args && ... args);
+    template <typename... Args>
+    void emplace(Args &&... args);
 
     /// \returns capacity of the ring buffer
     std::size_t capacity() const { return capacity_; }
@@ -134,15 +137,16 @@ private:
     void push_helper(Init init);
 
 private:
-    std::shared_ptr<ring_buffer_store> store_;    ///< shared memory backing store for the ring buffer
-    std::size_t                        capacity_; ///< capacity of the ring buffer (maximum possible number of items)
-    header_t *                         header_;   ///< ring buffer header infomation (stored in `store_`)
-    data_t *                           data_;     ///< actual items (stored in `store_`)
+    std::shared_ptr<ring_buffer_store> store_;  ///< shared memory backing store for the ring buffer
+    std::size_t capacity_;                      ///< capacity of the ring buffer (maximum possible number of items)
+    header_t * header_;                         ///< ring buffer header infomation (stored in `store_`)
+    data_t * data_;                             ///< actual items (stored in `store_`)
 };
 
 
 // forward decl
-template <typename T> class ring_buffer_iterator;
+template <typename T>
+class ring_buffer_iterator;
 
 
 /// The `ring_buffer_reader` class is the reader for the ring buffer in shared memory.  It operates on the
@@ -195,11 +199,11 @@ private:
 private:
     static constexpr unsigned underflow_fixup_ = 128;  ///< number of items to jump over on read_pos underflow
 
-    std::shared_ptr<ring_buffer_store> store_;         ///< shared memory backing store for the ring buffer
-    unsigned mutable                   read_pos_;      ///< position of the next item to read
-    header_t const *                   header_;        ///< ring buffer header infomation (stored in `store_`)
-    data_t const *                     data_;          ///< actual items (stored in `store_`)
-    std::size_t                        capacity_mask_; ///< copy of header_->capacity-1 to avoid touching the header memory
+    std::shared_ptr<ring_buffer_store> store_;  ///< shared memory backing store for the ring buffer
+    unsigned mutable read_pos_;                 ///< position of the next item to read
+    header_t const * header_;                   ///< ring buffer header infomation (stored in `store_`)
+    data_t const * data_;                       ///< actual items (stored in `store_`)
+    std::size_t capacity_mask_;                 ///< copy of header_->capacity-1 to avoid touching the header memory
 };
 
 
@@ -207,9 +211,8 @@ private:
 /// allowing to use `ring_buffer_reader` with iterator-based loops and algorithms.  The behavior of this
 /// iterator is similar to `std::istream_itreator`.
 template <typename T>
-class ring_buffer_iterator : public boost::iterator_facade<ring_buffer_iterator<T>,
-                                                           T const,
-                                                           boost::single_pass_traversal_tag>
+class ring_buffer_iterator
+    : public boost::iterator_facade<ring_buffer_iterator<T>, T const, boost::single_pass_traversal_tag>
 {
     friend class boost::iterator_core_access;
 
@@ -220,8 +223,7 @@ public:
     {}
 
     /// Create iterator attached to the specified ring buffer `reader`.
-    explicit
-    ring_buffer_iterator(ring_buffer_reader<T> & reader)
+    explicit ring_buffer_iterator(ring_buffer_reader<T> & reader)
         : reader_{&reader}
     {}
 
@@ -238,19 +240,13 @@ private:
         return true;
     }
 
-    void increment()
-    {
-        reader_->next();
-    }
+    void increment() { reader_->next(); }
 
-    T const & dereference() const
-    {
-        return value_ = reader_->get();
-    }
+    T const & dereference() const { return value_ = reader_->get(); }
 
 private:
     ring_buffer_reader<T> * reader_;
-    T mutable               value_;
+    T mutable value_;
 };
 
 }  // namespace tla

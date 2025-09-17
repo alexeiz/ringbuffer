@@ -11,15 +11,16 @@ struct shm_guard
 {
     shm_guard(char const * name)
         : name_{name}
-    { boost::interprocess::shared_memory_object::remove(name_); }
+    {
+        boost::interprocess::shared_memory_object::remove(name_);
+    }
 
-    ~shm_guard()
-    { boost::interprocess::shared_memory_object::remove(name_); }
+    ~shm_guard() { boost::interprocess::shared_memory_object::remove(name_); }
 
     char const * name_;
 };
 
-std::size_t const  shm_size = 4096;
+std::size_t const shm_size = 4096;
 char const * const shm_file = "ring_buffer_store_test";
 }  // anonymous namespace
 
@@ -68,14 +69,12 @@ TEST_CASE("read_write_ring_buffer_store", "[ringbufferstore]")
 
 TEST_CASE("fail_create_ring_buffer_store", "[ringbufferstore]")
 {
-    auto test_expr = []{ ring_buffer_store rbs{ring_buffer_store::create, "///", 64}; };
+    auto test_expr = [] { ring_buffer_store rbs{ring_buffer_store::create, "///", 64}; };
     REQUIRE_THROWS_AS(test_expr(), boost::interprocess::interprocess_exception);
 }
 
 TEST_CASE("fail_open_ring_buffer_store", "[ringbufferstore]")
 {
-    auto test_expr = []{ ring_buffer_store rbs{ring_buffer_store::open, shm_file}; };
+    auto test_expr = [] { ring_buffer_store rbs{ring_buffer_store::open, shm_file}; };
     REQUIRE_THROWS_AS(test_expr(), boost::interprocess::interprocess_exception);
 }
-
-

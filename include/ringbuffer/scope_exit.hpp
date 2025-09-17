@@ -25,18 +25,15 @@ struct scope_guard
         : action{f}
     {}
 
-    ~scope_guard() noexcept(false)
-    {
-        action();
-    }
+    ~scope_guard() noexcept(false) { action(); }
 
     F action;
 };
 
-struct scope_guard_tag {
+struct scope_guard_tag
+{
     template <typename F>
-    friend
-    auto operator+(scope_guard_tag, F && f)
+    friend auto operator+(scope_guard_tag, F && f)
     {
         return scope_guard<F>(std::forward<F>(f));
     }
@@ -45,11 +42,10 @@ struct scope_guard_tag {
 }  // namespace detail
 }  // namespace util
 
-#define SCOPE_CONCAT2_(X, Y)  X ## Y
-#define SCOPE_CONCAT_(X, Y)   SCOPE_CONCAT2_(X, Y)
+#define SCOPE_CONCAT2_(X, Y) X##Y
+#define SCOPE_CONCAT_(X, Y)  SCOPE_CONCAT2_(X, Y)
 
-#define scope(condition)  scope_ ## condition
-#define scope_exit        auto const & SCOPE_CONCAT_(scope_guard_obj_, __COUNTER__)         \
-                          __attribute__ ((unused)) = util::detail::scope_guard_tag{} + [&]
-
-
+#define scope(condition) scope_##condition
+#define scope_exit                                                                                                     \
+    auto const & SCOPE_CONCAT_(scope_guard_obj_, __COUNTER__) __attribute__((unused)) =                                \
+        util::detail::scope_guard_tag{} + [&]

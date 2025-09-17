@@ -24,5 +24,3 @@ add_test(NAME ringbuffer_concurrent_test
 add_executable(ringbuffer_reader
                ringbuffer_reader.t.cpp)
 target_link_libraries(ringbuffer_reader PRIVATE ringbuffer)
-
-

@@ -38,10 +38,11 @@ struct shm_guard
 {
     shm_guard(char const * name)
         : name_{name}
-    { ipc::shared_memory_object::remove(name_); }
+    {
+        ipc::shared_memory_object::remove(name_);
+    }
 
-    ~shm_guard()
-    { ipc::shared_memory_object::remove(name_); }
+    ~shm_guard() { ipc::shared_memory_object::remove(name_); }
 
     char const * name_;
 };
@@ -65,7 +66,8 @@ public:
         {
             char a;
             auto bytes = read(pipe_read_, &a, 1);
-            assert(bytes == 1); (void) bytes;
+            assert(bytes == 1);
+            (void) bytes;
         }
     }
 
@@ -75,7 +77,8 @@ public:
         {
             char a = 'z';
             auto bytes = write(pipe_write_, &a, 1);
-            assert(bytes == 1); (void) bytes;
+            assert(bytes == 1);
+            (void) bytes;
         }
     }
 
@@ -86,8 +89,7 @@ private:
 };
 
 
-inline
-unsigned long now_rdtsc()
+inline unsigned long now_rdtsc()
 {
     union
     {
@@ -100,16 +102,12 @@ unsigned long now_rdtsc()
         unsigned long tsc;
     } ts;
 
-    asm volatile("rdtsc" : "=a" (ts.regs.lo), "=d" (ts.regs.hi));
+    asm volatile("rdtsc" : "=a"(ts.regs.lo), "=d"(ts.regs.hi));
     return ts.tsc;
 }
 
 
-inline
-auto now_chrono()
-{
-    return chrono::high_resolution_clock::now();
-}
+inline auto now_chrono() { return chrono::high_resolution_clock::now(); }
 
 
 /*
@@ -145,13 +143,10 @@ unsigned get_cpufreq_khz()
 
 
 // simple synchronized logger implementation
-void log_impl()
-{
-    clog << endl;
-}
+void log_impl() { clog << endl; }
 
-template <typename A, typename ...Args>
-void log_impl(A && arg1, Args && ...args)
+template <typename A, typename... Args>
+void log_impl(A && arg1, Args &&... args)
 {
     clog << std::forward<A>(arg1);
     log_impl(std::forward<Args>(args)...);
@@ -159,8 +154,8 @@ void log_impl(A && arg1, Args && ...args)
 
 mutex log_mutex;
 
-template <typename ...Args>
-void log_msg(Args && ...args)
+template <typename... Args>
+void log_msg(Args &&... args)
 {
     lock_guard<mutex> _{log_mutex};
     log_impl(std::forward<Args>(args)...);
@@ -177,8 +172,8 @@ struct data_item
         , seq{n}
     {}
 
-    unsigned long            timestamp;
-    int                      seq;
+    unsigned long timestamp;
+    int seq;
     array<int, payload_size> payload;
 };
 
@@ -191,8 +186,8 @@ static_assert(sizeof(data_item<64>) == 64, "wrong data_item size");
 sync_pipe reader_sync;
 sync_pipe writer_sync;
 
-char const *   ring_buffer_name = "ringbuffer_concur_test";
-vector<pid_t>  reader_pids;
+char const * ring_buffer_name = "ringbuffer_concur_test";
+vector<pid_t> reader_pids;
 vector<thread> reader_threads;
 
 
@@ -200,7 +195,7 @@ template <typename Item>
 void run_reader_impl()
 {
     reader_sync.wait();
-    scope (exit) { writer_sync.signal(); };
+    scope(exit) { writer_sync.signal(); };
 
     log_msg("reader ", getpid(), ":", this_thread::get_id(), " started");
 
@@ -225,7 +220,7 @@ void run_reader_impl()
             latency += lat;
             ++latency_items;
             if (latency_min > lat)
-                latency_min  = lat;
+                latency_min = lat;
         }
 
         if (cur.seq == -1)
@@ -244,21 +239,26 @@ void run_reader_impl()
 
     auto end = now_chrono();
 
-    double items_sec = read_items / (double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / 1000'000'000);
+    double items_sec =
+        read_items / (double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / 1000'000'000);
     double bytes_sec = items_sec * sizeof(Item);
 
+    // clang-format off
     log_msg("reader ", getpid(), ":", this_thread::get_id(), "\n",
             "  gaps           : ", gaps, "\n",
             "  errors         : ", errors, "\n",
             "  throughput     : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec\n",
             "  average latency: ", latency / double(latency_items), " cycles\n",
             "  min latency    : ", latency_min, " cycles");
+    // clang-format on
 }
 
 void run_reader(size_t item_size)
 {
-#define READER_IMPL_CASE(N)                            \
-    case N: run_reader_impl<data_item<N>>(); break;    \
+#define READER_IMPL_CASE(N)                                                                                            \
+    case N:                                                                                                            \
+        run_reader_impl<data_item<N>>();                                                                               \
+        break;
 
     switch (item_size)
     {
@@ -290,7 +290,8 @@ void run_writer_impl(unsigned readers, unsigned rb_size)
     reader_sync.signal(readers);
     this_thread::sleep_for(100ms);
 
-    scope (exit) {
+    scope(exit)
+    {
         writer_sync.wait(readers);
         log_msg("writer done");
     };
@@ -314,14 +315,18 @@ void run_writer_impl(unsigned readers, unsigned rb_size)
     double items_sec = items / (double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / 1000'000'000);
     double bytes_sec = items_sec * sizeof(Item);
 
+    // clang-format off
     log_msg("writer throughput: ", items_sec, " items/sec\n",
             "                 : ", bytes_sec, " bytes/sec");
+    // clang-format on
 }
 
 void run_writer(unsigned readers, unsigned item_size, unsigned rb_size)
 {
-#define WRITER_IMPL_CASE(N)                                             \
-    case N: run_writer_impl<data_item<N>>(readers, rb_size); break;     \
+#define WRITER_IMPL_CASE(N)                                                                                            \
+    case N:                                                                                                            \
+        run_writer_impl<data_item<N>>(readers, rb_size);                                                               \
+        break;
 
     switch (item_size)
     {
@@ -350,7 +355,7 @@ void create_reader_processes(unsigned readers, size_t item_size)
         if (auto pid = fork())
         {
             // parent
-            if  (pid < 0)
+            if (pid < 0)
             {
                 perror(nullptr);
                 exit(-1);
@@ -379,7 +384,7 @@ void wait_reader_processes()
 void create_reader_threads(unsigned readers, size_t item_size)
 {
     for (unsigned i = 0; i != readers; ++i)
-        reader_threads.emplace_back([=]{ run_reader(item_size); });
+        reader_threads.emplace_back([=] { run_reader(item_size); });
 }
 
 void wait_reader_threads()
@@ -391,7 +396,7 @@ void wait_reader_threads()
 void run_test(unsigned readers, size_t item_size, size_t rb_size, bool use_threads)
 {
     log_msg("number of readers  : ", readers);
-    log_msg("size of data item  : ",item_size);
+    log_msg("size of data item  : ", item_size);
     log_msg("size of ring buffer: ", rb_size);
     log_msg("use threads        : ", use_threads);
 
@@ -422,6 +427,7 @@ try
     size_t rb_size = 0x10000;
     bool use_threads = false;
 
+    // clang-format off
     po::options_description desc("options");
     desc.add_options()
         ("help,h", "display this help message")
@@ -435,6 +441,7 @@ try
          po::value<size_t>(&rb_size)->default_value(rb_size),
          "number of items in the ring buffer")
         ("use-threads,t", "use reader threads (default: separate processes)");
+    // clang-format on
 
     po::variables_map opt;
     po::store(po::parse_command_line(argc, argv, desc), opt);
@@ -465,5 +472,3 @@ catch (exception & e)
     cerr << "error: " << e.what() << endl;
     exit(-1);
 }
-
-

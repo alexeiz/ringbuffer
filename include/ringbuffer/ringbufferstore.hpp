@@ -15,10 +15,7 @@ namespace detail
 struct shm_object_holder
 {
     // Create and size a shared memory object.
-    shm_object_holder(char const * shm_name,
-                      std::size_t  size,
-                      ipc::mode_t  mode,
-                      bool         remove = false)
+    shm_object_holder(char const * shm_name, std::size_t size, ipc::mode_t mode, bool remove = false)
         : obj_(ipc::create_only, shm_name, mode)
         , remove_on_close_(remove)
     {
@@ -26,8 +23,7 @@ struct shm_object_holder
     }
 
     // Open an existing shared memory object.
-    shm_object_holder(char const * shm_name,
-                      ipc::mode_t  mode)
+    shm_object_holder(char const * shm_name, ipc::mode_t mode)
         : obj_(ipc::open_only, shm_name, mode)
     {}
 
@@ -38,22 +34,23 @@ struct shm_object_holder
     }
 
     ipc::shared_memory_object obj_;
-    bool                      remove_on_close_{false};
-
+    bool remove_on_close_{false};
 };
 }  // namespace detail
 
 class ring_buffer_store
 {
 public:
+    // clang-format off
     class create_t {};
     class open_t {};
+    // clang-format on
 
     static constexpr create_t create{};
-    static constexpr open_t   open{};
+    static constexpr open_t open{};
 
 public:
-    ring_buffer_store(ring_buffer_store const &)             = delete;
+    ring_buffer_store(ring_buffer_store const &) = delete;
     ring_buffer_store & operator=(ring_buffer_store const &) = delete;
 
     /// Construct a ring buffer in a newly created shared memory object.
@@ -73,29 +70,18 @@ public:
     {}
 
     /// \returns start address of the shared memory object
-    void * address() const
-    {
-        return region_.get_address();
-    }
+    void * address() const { return region_.get_address(); }
 
     /// \return size of the shared memory object in bytes
-    std::size_t size() const
-    {
-        return region_.get_size();
-    }
+    std::size_t size() const { return region_.get_size(); }
 
     /// \return read/write mode of the shared memory object
-    ipc::mode_t mode() const
-    {
-        return mode_;
-    }
+    ipc::mode_t mode() const { return mode_; }
 
 private:
     detail::shm_object_holder shm_;
-    ipc::mapped_region        region_;
-    ipc::mode_t               mode_;
+    ipc::mapped_region region_;
+    ipc::mode_t mode_;
 };
 
 }  // namespace tla
-
-
