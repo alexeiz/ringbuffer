@@ -24,7 +24,7 @@ namespace detail
 static constexpr int ring_buffer_version = 1;
 static constexpr std::size_t ring_buffer_cache_linesize = 64;
 
-// ring buffer header information - made aggregate for designated initializers
+// ring buffer header information
 struct ring_buffer_header
 {
     constexpr ring_buffer_header(int v, std::size_t ds, std::size_t offset, std::size_t cap) noexcept
@@ -35,46 +35,37 @@ struct ring_buffer_header
         , positions{0}
     {}
 
-    struct position_t
+    union position_t
     {
-        unsigned long combined_positions;
+        unsigned long lpos;
+        unsigned upos[2];
 
-        constexpr position_t(unsigned long p) noexcept
-            : combined_positions{p}
+        position_t(unsigned long p)
+            : lpos{p}
         {}
-
-        constexpr position_t(unsigned first, unsigned last) noexcept
-            : combined_positions{static_cast<unsigned long>(first) |
-                               (static_cast<unsigned long>(last) << 32)}
+        position_t(unsigned f, unsigned s)
+            : upos{f, s}
         {}
-
-        constexpr auto split() const noexcept -> std::pair<unsigned, unsigned>
-        {
-            return {static_cast<unsigned>(combined_positions),
-                    static_cast<unsigned>(combined_positions >> 32)};
-        }
 
         static_assert(sizeof(unsigned long) >= 2 * sizeof(unsigned), "two counters should fit into one long value");
     };
 
-    static constexpr unsigned first(unsigned long pos) noexcept
+    static unsigned first(unsigned long pos)
     {
-        position_t p{pos};
-        auto [f, l] = p.split();
-        return f;
+        position_t p = {pos};
+        return p.upos[0];
     }
 
-    static constexpr unsigned last(unsigned long pos) noexcept
+    static unsigned last(unsigned long pos)
     {
-        position_t p{pos};
-        auto [f, l] = p.split();
-        return l;
+        position_t p = {pos};
+        return p.upos[1];
     }
 
-    static constexpr unsigned long make_positions(unsigned first, unsigned last) noexcept
+    static unsigned long make_positions(unsigned first, unsigned last)
     {
-        position_t p{first, last};
-        return p.combined_positions;
+        position_t p = {first, last};
+        return p.lpos;
     }
 
     int version;                           ///< version of the ring buffer to ensure reader/write compatibility
