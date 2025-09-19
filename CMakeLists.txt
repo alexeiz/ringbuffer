@@ -48,6 +48,9 @@ set(SOURCES
 add_library(ringbuffer ${SOURCES})
 target_link_libraries(ringbuffer PRIVATE ${LIBRARIES})
 
+include(CTest)
+enable_testing()
+
 add_subdirectory(test)
 #INSTALL(
 #  TARGETS ringbuffer
