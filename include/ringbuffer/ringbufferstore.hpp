@@ -4,6 +4,7 @@
 
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
+#include <string_view>
 
 namespace tla
 {
@@ -15,16 +16,16 @@ namespace detail
 struct shm_object_holder
 {
     // Create and size a shared memory object.
-    shm_object_holder(char const * shm_name, std::size_t size, ipc::mode_t mode, bool remove = false)
-        : obj_(ipc::create_only, shm_name, mode)
+    shm_object_holder(std::string_view shm_name, std::size_t size, ipc::mode_t mode, bool remove = false)
+        : obj_(ipc::create_only, std::string{shm_name}.c_str(), mode)
         , remove_on_close_(remove)
     {
         obj_.truncate(size);
     }
 
     // Open an existing shared memory object.
-    shm_object_holder(char const * shm_name, ipc::mode_t mode)
-        : obj_(ipc::open_only, shm_name, mode)
+    shm_object_holder(std::string_view shm_name, ipc::mode_t mode)
+        : obj_(ipc::open_only, std::string{shm_name}.c_str(), mode)
     {}
 
     ~shm_object_holder()
@@ -56,14 +57,14 @@ public:
     /// Construct a ring buffer in a newly created shared memory object.
     ///
     /// \note size in bytes
-    ring_buffer_store(create_t, char const * shm_name, std::size_t size, bool remove_on_close = false)
-        : shm_(shm_name, size, ipc::read_write)
+    ring_buffer_store(create_t, std::string_view shm_name, std::size_t size, bool remove_on_close = false)
+        : shm_(shm_name, size, ipc::read_write, remove_on_close)
         , region_(shm_.obj_, ipc::read_write, 0, 0, nullptr)
         , mode_(ipc::read_write)
     {}
 
     /// Open an existing shared memory object and read ring buffer information from it.
-    ring_buffer_store(open_t, char const * shm_name)
+    ring_buffer_store(open_t, std::string_view shm_name)
         : shm_(shm_name, ipc::read_only)
         , region_(shm_.obj_, ipc::read_only, 0, 0, nullptr)
         , mode_(ipc::read_only)

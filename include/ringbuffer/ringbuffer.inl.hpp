@@ -8,7 +8,7 @@ namespace tla
 // ring_buffer implementation
 
 template <typename T>
-ring_buffer<T>::ring_buffer(char const * name, std::size_t capacity, bool remove_on_close)
+ring_buffer<T>::ring_buffer(std::string_view name, std::size_t capacity, bool remove_on_close)
     : capacity_(capacity)
 {
     if (capacity_ == 0 || capacity_ > std::numeric_limits<unsigned>::max())
@@ -54,6 +54,9 @@ template <typename T>
 template <typename Init>
 void ring_buffer<T>::push_helper(Init init)
 {
+    [[assume(capacity_ > 0)]];
+    [[assume((capacity_ & (capacity_ - 1)) == 0)]];  // capacity_ is power of 2
+
     // get current positions
     auto pos = header_->positions.load(std::memory_order_relaxed);
     unsigned first = header_t::first(pos);
@@ -83,7 +86,7 @@ inline std::size_t ring_buffer<T>::size() const
 // ring_buffer_reader implementation
 
 template <typename T>
-ring_buffer_reader<T>::ring_buffer_reader(char const * name)
+ring_buffer_reader<T>::ring_buffer_reader(std::string_view name)
     : store_{std::make_shared<ring_buffer_store>(ring_buffer_store::open, name)}
     , read_pos_{0}
     , header_{static_cast<header_t *>(store_->address())}
@@ -97,6 +100,9 @@ ring_buffer_reader<T>::ring_buffer_reader(char const * name)
     // verify data item size
     if (header_->data_size != sizeof(T))
         throw std::runtime_error("ring_buffer stored data item size incompatible with reader data item");
+
+    [[assume(header_->version == detail::ring_buffer_version)]];
+    [[assume(header_->data_size == sizeof(T))]];
 
     // initialize positions
     auto pos = header_->positions.load(std::memory_order_acquire);
@@ -138,6 +144,8 @@ inline void ring_buffer_reader<T>::spin_wait(unsigned long pos) const
 template <typename T>
 T ring_buffer_reader<T>::get() const
 {
+    [[assume(capacity_mask_ >= 0)]];
+
     auto pos = header_->positions.load(std::memory_order_acquire);
     adjust_read_pos(pos);
     spin_wait(pos);

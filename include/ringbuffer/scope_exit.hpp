@@ -8,8 +8,15 @@
 ///   scope(exit) { close(f); };
 /// ```
 ///
+/// Modern C++23 alternative:
+/// ```
+///   FILE * f = fopen("file", "r");
+///   auto cleanup = std::scope_exit([f] { fclose(f); });
+/// ```
+///
 /// Note:
 /// Do not use BOOST_SCOPE_EXIT.  It uses std::function internally and therefore allocates memory.
+/// This implementation is conditionally noexcept and provides better exception safety.
 
 #include <utility>
 
@@ -22,10 +29,13 @@ template <typename F>
 struct scope_guard
 {
     scope_guard(F && f)
-        : action{f}
+        : action{std::forward<F>(f)}
     {}
 
-    ~scope_guard() noexcept(false) { action(); }
+    ~scope_guard() noexcept(noexcept(std::declval<F &>()())) { action(); }
+
+    scope_guard(const scope_guard &) = delete;
+    scope_guard & operator=(const scope_guard &) = delete;
 
     F action;
 };

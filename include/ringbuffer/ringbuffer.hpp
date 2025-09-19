@@ -8,11 +8,13 @@
 
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <memory>
 #include <atomic>
 #include <type_traits>
 #include <utility>
 #include <stdexcept>
+#include <concepts>
 
 namespace tla
 {
@@ -22,10 +24,10 @@ namespace detail
 static constexpr int ring_buffer_version = 1;
 static constexpr std::size_t ring_buffer_cache_linesize = 64;
 
-// ring buffer header information
+// ring buffer header information - made aggregate for designated initializers
 struct ring_buffer_header
 {
-    ring_buffer_header(int v, std::size_t ds, std::size_t offset, std::size_t cap)
+    constexpr ring_buffer_header(int v, std::size_t ds, std::size_t offset, std::size_t cap) noexcept
         : version{v}
         , data_size{ds}
         , data_offset{offset}
@@ -33,37 +35,46 @@ struct ring_buffer_header
         , positions{0}
     {}
 
-    union position_t
+    struct position_t
     {
-        unsigned long lpos;
-        unsigned upos[2];
+        unsigned long combined_positions;
 
-        position_t(unsigned long p)
-            : lpos{p}
+        constexpr position_t(unsigned long p) noexcept
+            : combined_positions{p}
         {}
-        position_t(unsigned f, unsigned s)
-            : upos{f, s}
+
+        constexpr position_t(unsigned first, unsigned last) noexcept
+            : combined_positions{static_cast<unsigned long>(first) |
+                               (static_cast<unsigned long>(last) << 32)}
         {}
+
+        constexpr auto split() const noexcept -> std::pair<unsigned, unsigned>
+        {
+            return {static_cast<unsigned>(combined_positions),
+                    static_cast<unsigned>(combined_positions >> 32)};
+        }
 
         static_assert(sizeof(unsigned long) >= 2 * sizeof(unsigned), "two counters should fit into one long value");
     };
 
-    static unsigned first(unsigned long pos)
+    static constexpr unsigned first(unsigned long pos) noexcept
     {
-        position_t p = {pos};
-        return p.upos[0];
+        position_t p{pos};
+        auto [f, l] = p.split();
+        return f;
     }
 
-    static unsigned last(unsigned long pos)
+    static constexpr unsigned last(unsigned long pos) noexcept
     {
-        position_t p = {pos};
-        return p.upos[1];
+        position_t p{pos};
+        auto [f, l] = p.split();
+        return l;
     }
 
-    static unsigned long make_positions(unsigned first, unsigned last)
+    static constexpr unsigned long make_positions(unsigned first, unsigned last) noexcept
     {
-        position_t p = {first, last};
-        return p.lpos;
+        position_t p{first, last};
+        return p.combined_positions;
     }
 
     int version;                           ///< version of the ring buffer to ensure reader/write compatibility
@@ -79,7 +90,7 @@ struct ring_buffer_data
 {
     union
     {
-        std::aligned_storage_t<sizeof(T), ring_buffer_cache_linesize> alignement;
+        alignas(ring_buffer_cache_linesize) std::byte storage[sizeof(T)];
         T item;
     };
 };
@@ -92,12 +103,15 @@ struct ring_buffer_data
 /// how many consumers it has.
 ///
 /// \b Requirements:
-///  - T must be 'trivially destructible'
+///  - T must be 'trivially copyable' and 'trivially destructible'
+///  - T must be reasonably sized (≤ 4KB)
 template <typename T>
 class ring_buffer
 {
     // requirements
-    static_assert(std::is_trivially_destructible<T>::value, "T's dtor must be trivial");
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+    static_assert(std::is_trivially_destructible_v<T>, "T must be trivially destructible");
+    static_assert(sizeof(T) <= 4096, "T must be reasonably sized (≤ 4KB)");
 
     // types
     using header_t = detail::ring_buffer_header;
@@ -110,7 +124,7 @@ public:
     /// \param capacity         maximum capacity of the ring buffer (number of items)
     /// \param remove_on_close  should the shared memory object file be removed when the ring buffer is destructed
     /// \throws boost::interprocess::interprocess_exception if mapping a shared memory region fails
-    ring_buffer(char const * name, std::size_t capacity, bool remove_on_close = false);
+    ring_buffer(std::string_view name, std::size_t capacity, bool remove_on_close = false);
 
     /// Push `val` to the end of the queue.
     void push(T const & val);
@@ -165,7 +179,7 @@ public:
     ///
     /// \param name
     /// \throws std::runtime_exception if mapping a shared memory region fails
-    ring_buffer_reader(char const * name);
+    ring_buffer_reader(std::string_view name);
 
     /// \returns number of items in the ring buffer available to read by this reader
     std::size_t size() const;
