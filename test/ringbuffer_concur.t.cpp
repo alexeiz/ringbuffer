@@ -162,18 +162,18 @@ void log_msg(Args &&... args)
 }
 
 
-template <std::size_t Size>
+template <size_t Size>
 struct data_item
 {
     constexpr static size_t payload_size = (Size - sizeof(unsigned long) - sizeof(int)) / sizeof(int);
 
-    data_item(int n)
+    data_item(unsigned n)
         : timestamp{now_rdtsc()}
         , seq{n}
     {}
 
     unsigned long timestamp;
-    int seq;
+    unsigned seq;
     array<int, payload_size> payload;
 };
 
@@ -186,7 +186,8 @@ static_assert(sizeof(data_item<64>) == 64, "wrong data_item size");
 sync_pipe reader_sync;
 sync_pipe writer_sync;
 
-char const * ring_buffer_name = "ringbuffer_concur_test";
+constexpr unsigned sentry(-1);  // special sequence number value to signal readers to stop
+constexpr char const * ring_buffer_name = "ringbuffer_concur_test";
 vector<pid_t> reader_pids;
 vector<thread> reader_threads;
 
@@ -203,7 +204,7 @@ void run_reader_impl()
     int read_items = 0;
     int gaps = 0;
     int errors = 0;
-    int prev = -1;
+    unsigned prev = sentry;
     unsigned long latency = 0;
     unsigned long latency_min = ULONG_MAX;
     int latency_items = 0;
@@ -223,10 +224,10 @@ void run_reader_impl()
                 latency_min = lat;
         }
 
-        if (cur.seq == -1)
+        if (cur.seq == sentry)
             break;
 
-        if (cur.seq != prev + 1 && prev != -1)
+        if (cur.seq != prev + 1 && prev != sentry)
         {
             if (cur.seq > prev)
                 gaps += cur.seq - prev - 1;
@@ -281,7 +282,7 @@ void run_reader(size_t item_size)
 }
 
 template <typename Item>
-void run_writer_impl(unsigned readers, unsigned rb_size)
+void run_writer_impl(unsigned readers, unsigned item_count, unsigned rb_size)
 {
     shm_guard _{ring_buffer_name};
     ring_buffer<Item> rb{ring_buffer_name, rb_size};
@@ -296,11 +297,10 @@ void run_writer_impl(unsigned readers, unsigned rb_size)
         log_msg("writer done");
     };
 
-    int const items = 1000'000'000;
-    log_msg("items to push: ", items);
+    log_msg("items to push: ", item_count);
 
     auto start = now_chrono();
-    for (int i = 0; i != items; ++i)
+    for (unsigned i = 0; i != item_count; ++i)
     {
         rb.emplace(i);
 
@@ -309,10 +309,11 @@ void run_writer_impl(unsigned readers, unsigned rb_size)
         delay = 1;
         delay = 1;
     }
-    rb.push(-1);  // signal to readers to stop
+    rb.push(sentry);  // signal to readers to stop
     auto end = now_chrono();
 
-    double items_sec = items / (double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / 1000'000'000);
+    double items_sec =
+        item_count / (double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / 1'000'000'000);
     double bytes_sec = items_sec * sizeof(Item);
 
     // clang-format off
@@ -321,11 +322,11 @@ void run_writer_impl(unsigned readers, unsigned rb_size)
     // clang-format on
 }
 
-void run_writer(unsigned readers, unsigned item_size, unsigned rb_size)
+void run_writer(unsigned readers, unsigned item_size, unsigned item_count, unsigned rb_size)
 {
 #define WRITER_IMPL_CASE(N)                                                                                            \
     case N:                                                                                                            \
-        run_writer_impl<data_item<N>>(readers, rb_size);                                                               \
+        run_writer_impl<data_item<N>>(readers, item_count, rb_size);                                                   \
         break;
 
     switch (item_size)
@@ -393,7 +394,7 @@ void wait_reader_threads()
         thr.join();
 }
 
-void run_test(unsigned readers, size_t item_size, size_t rb_size, bool use_threads)
+void run_test(unsigned readers, size_t item_size, unsigned item_count, size_t rb_size, bool use_threads)
 {
     log_msg("number of readers  : ", readers);
     log_msg("size of data item  : ", item_size);
@@ -405,7 +406,7 @@ void run_test(unsigned readers, size_t item_size, size_t rb_size, bool use_threa
     else
         create_reader_processes(readers, item_size);
 
-    run_writer(readers, item_size, rb_size);
+    run_writer(readers, item_size, item_count, rb_size);
 
     if (use_threads)
         wait_reader_threads();
@@ -424,6 +425,7 @@ try
 
     auto readers = std::thread::hardware_concurrency() - 1;  // one writer and the rest are readers
     size_t item_size = 16;
+    size_t item_count = 10'000'000;
     size_t rb_size = 0x10000;
     bool use_threads = false;
 
@@ -437,6 +439,9 @@ try
         ("item-size,i",
          po::value<size_t>(&item_size)->default_value(item_size),
          "size of the data item in bytes")
+        ("item-count,I",
+         po::value<size_t>(&item_count)->default_value(item_count),
+         "number of items to push")
         ("rb-size,s",
          po::value<size_t>(&rb_size)->default_value(rb_size),
          "number of items in the ring buffer")
@@ -465,7 +470,7 @@ try
     if (opt.count("use-threads"))
         use_threads = true;
 
-    run_test(readers, item_size, rb_size, use_threads);
+    run_test(readers, item_size, item_count, rb_size, use_threads);
 }
 catch (exception & e)
 {
