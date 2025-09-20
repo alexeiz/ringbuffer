@@ -29,7 +29,7 @@ cmake --build build
 - Example: ./build/test/test_ringbuffer "[ringbufferstore]"
 
 ## Code Style Guidelines
-- **Namespace**: All code in `tla` namespace
+- **Namespace**: All code in `rb` namespace
 - **Headers**: Use `#pragma once`; include order: project headers, stdlib, external
 - **Types**: PascalCase for classes/structs, snake_case for functions/variables
 - **Templates**: Implement in `.inl.hpp` files, include at end of headers
@@ -40,6 +40,6 @@ cmake --build build
 
 ## Architecture Notes
 - Lock-free ring buffer for IPC via shared memory (boost::interprocess)
-- Core classes: tla::ring_buffer<T>, tla::ring_buffer_reader<T>, tla::ring_buffer_store
+- Core classes: rb::ring_buffer<T>, rb::ring_buffer_reader<T>, rb::ring_buffer_store
 - File org: include/*.hpp, src/*.cpp, test/*.t.cpp
 - Assumptions: 64-byte cache lines; items <= page size

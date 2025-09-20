@@ -16,7 +16,7 @@
 #include <stdexcept>
 #include <concepts>
 
-namespace tla
+namespace rb
 {
 namespace detail
 {
@@ -254,6 +254,6 @@ private:
     T mutable value_;
 };
 
-}  // namespace tla
+}  // namespace rb
 
 #include "ringbuffer.inl.hpp"

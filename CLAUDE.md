@@ -32,14 +32,14 @@ The project implements a lock-free ring buffer for inter-process communication w
 
 ### Core Classes
 
-- `tla::ring_buffer<T>` - Single-producer, multiple-consumer ring buffer writer
-- `tla::ring_buffer_reader<T>` - Reader for consuming data from the ring buffer
-- `tla::ring_buffer_iterator<T>` - Input iterator interface for ring buffer readers
-- `tla::ring_buffer_store` - Shared memory abstraction using boost::interprocess
+- `rb::ring_buffer<T>` - Single-producer, multiple-consumer ring buffer writer
+- `rb::ring_buffer_reader<T>` - Reader for consuming data from the ring buffer
+- `rb::ring_buffer_iterator<T>` - Input iterator interface for ring buffer readers
+- `rb::ring_buffer_store` - Shared memory abstraction using boost::interprocess
 
 ### Architecture Details
 
-- **Namespace**: All code is in the `tla` namespace
+- **Namespace**: All code is in the `rb` namespace
 - **Memory Management**: Uses shared memory objects for inter-process communication
 - **Thread Safety**: Lock-free design using atomic operations for position tracking
 - **Data Alignment**: Cache-line aligned data structures (64-byte alignment)

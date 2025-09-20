@@ -32,7 +32,7 @@ using namespace std::literals;
 namespace po = boost::program_options;
 namespace ipc = boost::interprocess;
 
-using namespace tla;
+using namespace rb;
 
 struct shm_guard
 {

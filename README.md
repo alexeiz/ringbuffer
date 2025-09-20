@@ -53,7 +53,7 @@ cmake --build build
 int main() {
     // Create a ring buffer with capacity for 1024 integers
     // The shared memory object will be automatically removed when the last instance is destroyed
-    tla::ring_buffer<int> rb("my_ring_buffer", 1024, true);
+    rb::ring_buffer<int> rb("my_ring_buffer", 1024, true);
 
     // Push items to the buffer
     for (int i = 0; i < 10; ++i) {
@@ -74,7 +74,7 @@ int main() {
 
 int main() {
     // Create a reader attached to the existing shared memory
-    tla::ring_buffer_reader<int> reader("my_ring_buffer");
+    rb::ring_buffer_reader<int> reader("my_ring_buffer");
 
     // Read items until the buffer is empty
     while (!reader.empty()) {
@@ -94,7 +94,7 @@ int main() {
 #include <algorithm>
 
 int main() {
-    tla::ring_buffer_reader<int> reader("my_ring_buffer");
+    rb::ring_buffer_reader<int> reader("my_ring_buffer");
 
     for (int val : reader) {
         std::cout << "Value: " << val << std::endl;
@@ -113,7 +113,7 @@ The ring buffer supports single-producer, multiple-consumer patterns across proc
 #include <chrono>
 
 int main() {
-    tla::ring_buffer<int> rb("concurrent_buffer", 4096, true);
+    rb::ring_buffer<int> rb("concurrent_buffer", 4096, true);
 
     for (int i = 0; i < 1000; ++i) {
         rb.push(i);
@@ -128,7 +128,7 @@ int main() {
 #include <iostream>
 
 int main() {
-    tla::ring_buffer_reader<int> reader("concurrent_buffer");
+    rb::ring_buffer_reader<int> reader("concurrent_buffer");
 
     for (int val : reader) {
         std::cout << "Process " << getpid() << " read: " << val << std::endl;
@@ -146,7 +146,7 @@ int main() {
 int main() {
     try {
         // Attempt to create or open a ring buffer
-        tla::ring_buffer<int> rb("nonexistent_buffer", 1024, false);
+        rb::ring_buffer<int> rb("nonexistent_buffer", 1024, false);
 
         // Operations that might fail
         if (rb.empty()) {
@@ -200,7 +200,7 @@ static_assert(std::is_trivially_destructible_v<SensorData>,
               "SensorData must be trivially destructible");
 
 int main() {
-    tla::ring_buffer<SensorData> sensorBuffer("sensor_data", 1024, true);
+    rb::ring_buffer<SensorData> sensorBuffer("sensor_data", 1024, true);
 
     // Emplace construct items directly in the buffer
     sensorBuffer.emplace(1234567890, 25.5, 45.2);

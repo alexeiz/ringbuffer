@@ -6,7 +6,7 @@
 #include <boost/interprocess/mapped_region.hpp>
 #include <string_view>
 
-namespace tla
+namespace rb
 {
 namespace ipc = boost::interprocess;
 
@@ -85,4 +85,4 @@ private:
     ipc::mode_t mode_;
 };
 
-}  // namespace tla
+}  // namespace rb

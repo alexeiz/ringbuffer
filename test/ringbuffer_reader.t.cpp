@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 using namespace std;
-using namespace tla;
+using namespace rb;
 
 int main(int argc, char * argv[])
 try

@@ -7,7 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 
-using namespace tla;
+using namespace rb;
 
 namespace
 {
