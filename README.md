@@ -37,8 +37,13 @@ Add the **default** preset to the generated **CMakeUserPresets.json** on the sam
 
 Configure and build:
 ```shell
-cmake --preset default .
-cmake --build build
+cmake --preset default
+cmake --build build --preset default
+```
+
+Run tests:
+```shell
+ctest --preset default
 ```
 
 ## Usage Examples

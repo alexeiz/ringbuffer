@@ -15,15 +15,15 @@ conan install . --output-folder=build --build=missing -s build_type=Debug
 
 Configure and build:
 ```bash
-cmake --preset default .
-cmake --build build
+cmake --preset default
+cmake --build build --preset default
 ```
 
 ### Running Tests
 
 The project uses Catch2 testing framework. Tests are built with the main project and can be run with:
 ```bash
-./build/test/test_ringbuffer
+ctest --preset default --output-on-failure
 ```
 
 ## Code Architecture
