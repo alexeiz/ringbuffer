@@ -1,4 +1,4 @@
-# Repository Guidelines
+# Agent Guidelines for Ring Buffer Project
 
 ## Project Structure & Module Organization
 - `src/` holds the lock-free queue primitives compiled into the `ringbuffer` static library; keep production code inside the `rb` namespace.
@@ -6,23 +6,28 @@
 - Tests mirror the production layout under `test/`; `test_ringbuffer_concur` covers multithreaded scenarios, while other suites target unit-level APIs.
 - Treat `build/` as disposable output; never commit generated artifacts or Conan/CMake cache files.
 
-## Build, Test, and Development Commands
-- `conan install . --output-folder=build --build=missing -s build_type=Debug` installs third-party dependencies for local development.
-- `cmake --preset default .` configures the project using the repo presets and caches toolchain options in `build/`.
-- `cmake --build build` compiles the library and all test binaries; add `--target <name>` to focus on specific outputs.
-- `ctest --preset default --output-on-failure` runs every configured test via CTest; pair with `-R <regex>` to scope specific suites.
-- `./build/test/test_ringbuffer` runs the full Catch2 suite; append a tag such as `"[ringbuffer]"` to isolate a subset.
-- `./build/test/test_ringbuffer_concur --readers=2 --item-size=64 --rb-size=4096` stresses the concurrent path with tunable parameters.
+## Build, Lint, and Test Commands
+- **Install dependencies**: `conan install . --output-folder=build --build=missing -s build_type=Debug`
+- **Configure project**: `cmake --preset default .`
+- **Build all**: `cmake --build build`
+- **Build specific target**: `cmake --build build --target <target_name>`
+- **Run all tests**: `ctest --preset default --output-on-failure`
+- **Run single test**: `./build/test/test_ringbuffer [test_name]` (Catch2 tag-based filtering)
+- **Run concurrent tests**: `./build/test/test_ringbuffer_concur --readers=2 --item-size=64 --rb-size=4096`
+- **Format code**: `clang-format -i <file>` (LLVM style, 4-space indent, 120 char limit)
 
-## Coding Style & Naming Conventions
-- Apply `.clang-format` (LLVM base, 4-space indent) before publishing updates; maintain include order: project headers, standard library, then external.
-- Name classes/structs in PascalCase; functions, variables, and free utilities stay snake_case.
-- Document public APIs with Doxygen comments and throw `std::runtime_error` for runtime contract breaches.
+## Code Style Guidelines
+- **Imports**: Project headers first, then standard library, then external (Boost, etc.)
+- **Formatting**: Use `.clang-format` (LLVM base, 4-space indent, 120 char limit)
+- **Types**: Use `std::size_t` for sizes, `std::string_view` for string parameters
+- **Naming**: PascalCase for classes/structs, snake_case for functions/variables
+- **Error handling**: Throw `std::runtime_error` for runtime contract breaches
+- **Documentation**: Doxygen comments for public APIs (/// style)
+- **Requirements**: T must be trivially copyable/destructible, ≤4KB, power-of-two capacity
 
 ## Testing Guidelines
 - Catch2 drives the test harness; tag suites descriptively (e.g., `[ringbufferstore]`) so focused runs stay fast.
 - Validate cache alignment, power-of-two capacity handling, and wraparound semantics explicitly in new tests.
-- Add concurrency fixtures to `test_ringbuffer_concur` when covering reader/writer regressions; keep scenarios deterministic.
 
 ## Commit & Pull Request Guidelines
 - Write commits in imperative present tense (e.g., `add reader fence validation`) and keep unrelated changes separate; reference issues with `Refs #123` when applicable.
