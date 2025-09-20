@@ -7,7 +7,7 @@ namespace rb
 
 // ring_buffer implementation
 
-template <typename T>
+template <ring_buffer_value T>
 ring_buffer<T>::ring_buffer(std::string_view name, std::size_t capacity, bool remove_on_close)
     : capacity_(capacity)
 {
@@ -37,20 +37,20 @@ ring_buffer<T>::ring_buffer(std::string_view name, std::size_t capacity, bool re
     data_ = reinterpret_cast<data_t *>(static_cast<char *>(store_->address()) + data_offset);
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline void ring_buffer<T>::push(T const & val)
 {
     push_helper([&val](data_t * where) { new (where) T(val); });
 }
 
-template <typename T>
+template <ring_buffer_value T>
 template <typename... Args>
 inline void ring_buffer<T>::emplace(Args &&... args)
 {
     push_helper([&args...](data_t * where) { new (where) T{std::forward<Args>(args)...}; });
 }
 
-template <typename T>
+template <ring_buffer_value T>
 template <typename Init>
 void ring_buffer<T>::push_helper(Init init)
 {
@@ -76,7 +76,7 @@ void ring_buffer<T>::push_helper(Init init)
     header_->positions.store(header_t::make_positions(first, last), std::memory_order_release);
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline std::size_t ring_buffer<T>::size() const
 {
     auto pos = header_->positions.load(std::memory_order_relaxed);
@@ -85,7 +85,7 @@ inline std::size_t ring_buffer<T>::size() const
 
 // ring_buffer_reader implementation
 
-template <typename T>
+template <ring_buffer_value T>
 ring_buffer_reader<T>::ring_buffer_reader(std::string_view name)
     : store_{std::make_shared<ring_buffer_store>(ring_buffer_store::open, name)}
     , read_pos_{0}
@@ -109,7 +109,7 @@ ring_buffer_reader<T>::ring_buffer_reader(std::string_view name)
     read_pos_ = header_t::first(pos);
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline std::size_t ring_buffer_reader<T>::size() const
 {
     auto pos = header_->positions.load(std::memory_order_acquire);
@@ -119,7 +119,7 @@ inline std::size_t ring_buffer_reader<T>::size() const
     return last > read_pos_ ? last - read_pos_ : 0;
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline void ring_buffer_reader<T>::adjust_read_pos(unsigned long pos) const
 {
     unsigned first = header_t::first(pos);
@@ -131,7 +131,7 @@ inline void ring_buffer_reader<T>::adjust_read_pos(unsigned long pos) const
     }
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline void ring_buffer_reader<T>::spin_wait(unsigned long pos) const
 {
     while (read_pos_ >= header_t::last(pos))
@@ -141,7 +141,7 @@ inline void ring_buffer_reader<T>::spin_wait(unsigned long pos) const
     }
 }
 
-template <typename T>
+template <ring_buffer_value T>
 T ring_buffer_reader<T>::get() const
 {
     [[assume(capacity_mask_ >= 0)]];
@@ -164,19 +164,19 @@ T ring_buffer_reader<T>::get() const
     }
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline void ring_buffer_reader<T>::next(std::size_t n)
 {
     read_pos_ += n;
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline ring_buffer_iterator<T> ring_buffer_reader<T>::begin()
 {
     return ring_buffer_iterator<T>{*this};
 }
 
-template <typename T>
+template <ring_buffer_value T>
 inline ring_buffer_iterator<T> ring_buffer_reader<T>::end()
 {
     return {};

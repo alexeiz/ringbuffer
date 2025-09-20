@@ -18,6 +18,9 @@
 
 namespace rb
 {
+template <typename T>
+concept ring_buffer_value = std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T> && (sizeof(T) <= 4096);
+
 namespace detail
 {
 // constants
@@ -76,7 +79,7 @@ struct ring_buffer_header
 };
 
 // ring buffer data item
-template <typename T>
+template <ring_buffer_value T>
 struct ring_buffer_data
 {
     union
@@ -94,16 +97,10 @@ struct ring_buffer_data
 /// how many consumers it has.
 ///
 /// \b Requirements:
-///  - T must be 'trivially copyable' and 'trivially destructible'
-///  - T must be reasonably sized (≤ 4KB)
-template <typename T>
+///  - T must satisfy `ring_buffer_value` concept
+template <ring_buffer_value T>
 class ring_buffer
 {
-    // requirements
-    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-    static_assert(std::is_trivially_destructible_v<T>, "T must be trivially destructible");
-    static_assert(sizeof(T) <= 4096, "T must be reasonably sized (≤ 4KB)");
-
     // types
     using header_t = detail::ring_buffer_header;
     using data_t = detail::ring_buffer_data<T>;
@@ -150,7 +147,7 @@ private:
 
 
 // forward decl
-template <typename T>
+template <ring_buffer_value T>
 class ring_buffer_iterator;
 
 
@@ -158,7 +155,7 @@ class ring_buffer_iterator;
 /// same shared memory objects that `ring_buffer` class writes.  Together with `ring_buffer` these two
 /// classes can be used for inter-process communication.  There can be any number of readers for the same
 /// shared memory ring buffer.  Readers operate completely independently of each other.
-template <typename T>
+template <ring_buffer_value T>
 class ring_buffer_reader
 {
     // types
@@ -215,7 +212,7 @@ private:
 /// Class `ring_buffer_iterator` provides a single-pass (input) iteration interface to `ring_buffer_reader`,
 /// allowing to use `ring_buffer_reader` with iterator-based loops and algorithms.  The behavior of this
 /// iterator is similar to `std::istream_itreator`.
-template <typename T>
+template <ring_buffer_value T>
 class ring_buffer_iterator
     : public boost::iterator_facade<ring_buffer_iterator<T>, T const, boost::single_pass_traversal_tag>
 {
