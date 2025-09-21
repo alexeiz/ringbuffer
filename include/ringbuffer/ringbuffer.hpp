@@ -19,7 +19,8 @@
 namespace rb
 {
 template <typename T>
-concept ring_buffer_value = std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T> && (sizeof(T) <= 4096);
+concept ring_buffer_value =
+    std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T> && (sizeof(T) <= 4096);
 
 namespace detail
 {
