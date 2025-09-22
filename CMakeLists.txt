@@ -5,7 +5,7 @@ include("FindPkgConfig")
 
 # set build type
 set(default_build_type "Debug")
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to '${default_build_type}'")
 
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
@@ -13,7 +13,7 @@ if (NOT CMAKE_BUILD_TYPE)
 
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
       STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif ()
+endif()
 
 # set compiler flags
 set(CMAKE_CXX_STANDARD   23)
@@ -26,18 +26,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrestrict")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 
 # Clang-specific
-if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -Wno-unknown-warning-option")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
-endif ()
+endif()
 
-# system libraries
-find_package(Threads REQUIRED)
-list(APPEND LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-
-find_package(Boost REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
-list(APPEND LIBRARIRES Boost::headers)
+# dependencies
+include(cmake/deps.cmake)
 
 # include directories and source files
 include_directories(include)
@@ -49,9 +44,17 @@ add_library(ringbuffer ${SOURCES})
 target_link_libraries(ringbuffer PRIVATE ${LIBRARIES})
 
 include(CTest)
-enable_testing()
+if(BUILD_TESTING)
+  message(STATUS "Build tests")
 
-add_subdirectory(test)
+  add_definitions(-DBUILD_TESTING)
+  include(cmake/deps-test.cmake)
+
+  add_subdirectory(test)
+else()
+  message(STATUS "Skip tests")
+endif()
+
 #INSTALL(
 #  TARGETS ringbuffer
 #  DIRECTORY ${CMAKE_SOURCE_DIR}/include

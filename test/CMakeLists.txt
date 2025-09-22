@@ -1,15 +1,13 @@
-find_package(Catch2 REQUIRED)
-
 add_executable(test_ringbuffer
                ringbuffer.t.cpp
                ringbufferstore.t.cpp)
-target_link_libraries(test_ringbuffer PRIVATE Catch2::Catch2WithMain ringbuffer)
+target_link_libraries(test_ringbuffer PRIVATE ${TEST_LIBRARIES} ringbuffer)
 
 add_test(NAME ringbuffer_tests COMMAND test_ringbuffer)
 
 add_executable(test_ringbuffer_concur
                ringbuffer_concur.t.cpp)
-target_link_libraries(test_ringbuffer_concur PRIVATE ringbuffer Boost::program_options)
+target_link_libraries(test_ringbuffer_concur PRIVATE ${TEST_LIBRARIES} Boost::program_options ringbuffer)
 
 add_test(NAME ringbuffer_concurrent_test
          COMMAND test_ringbuffer_concur --readers=2 --item-size=64 --rb-size=4096 --use-threads)
