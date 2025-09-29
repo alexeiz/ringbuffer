@@ -2,6 +2,7 @@ build/
 build-release/
 .cache/
 .vscode/
+.vs/
 .gdb_history
 CMakeUserPresets.json
 
