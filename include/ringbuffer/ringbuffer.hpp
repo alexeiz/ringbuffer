@@ -54,19 +54,19 @@ struct ring_buffer_header
         static_assert(sizeof(unsigned long) >= 2 * sizeof(unsigned), "two counters should fit into one long value");
     };
 
-    static unsigned first(unsigned long pos)
+    static constexpr unsigned first(unsigned long pos)
     {
         position_t p = {pos};
         return p.upos[0];
     }
 
-    static unsigned last(unsigned long pos)
+    static constexpr unsigned last(unsigned long pos)
     {
         position_t p = {pos};
         return p.upos[1];
     }
 
-    static unsigned long make_positions(unsigned first, unsigned last)
+    static constexpr unsigned long make_positions(unsigned first, unsigned last)
     {
         position_t p = {first, last};
         return p.lpos;
@@ -123,13 +123,13 @@ public:
     void emplace(Args &&... args);
 
     /// \returns capacity of the ring buffer
-    std::size_t capacity() const { return capacity_; }
+    constexpr std::size_t capacity() const { return capacity_; }
 
     /// \returns size (number of items) of the ring buffer
     std::size_t size() const;
 
     /// \returns `true` if the ring buffer is empty (`size() == 0`)
-    bool empty() const { return size() == 0; }
+    constexpr bool empty() const { return size() == 0; }
 
 private:
     /// Push item with generic in-place item initializer.
@@ -174,7 +174,7 @@ public:
     std::size_t size() const;
 
     /// \returns `true` if no items are available to read (`size() == 0`)
-    bool empty() const { return size() == 0; }
+    constexpr bool empty() const { return size() == 0; }
 
     /// Get the current item.
     ///
@@ -221,7 +221,7 @@ class ring_buffer_iterator
 
 public:
     /// Create the `end` iterator.
-    ring_buffer_iterator()
+    constexpr ring_buffer_iterator()
         : reader_{nullptr}
     {}
 
@@ -232,7 +232,7 @@ public:
 
 private:
     // iterator_facade interface
-    bool equal(ring_buffer_iterator const & other) const
+    constexpr bool equal(ring_buffer_iterator const & other) const
     {
         if (reader_ && other.reader_)
             return reader_ == other.reader_;
@@ -243,7 +243,7 @@ private:
         return true;
     }
 
-    void increment() { reader_->next(); }
+    constexpr void increment() { reader_->next(); }
 
     T const & dereference() const { return value_ = reader_->get(); }
 
