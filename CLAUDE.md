@@ -8,22 +8,32 @@ This project uses CMake with Conan for dependency management.
 
 ### Build Commands
 
-Install dependencies:
+**Install dependencies:**
 ```bash
 conan install . --output-folder=build --build=missing -s build_type=Debug
 ```
 
-Configure and build:
+**Configure and build:**
 ```bash
 cmake --preset default
 cmake --build build --preset default
 ```
 
-### Running Tests
-
-The project uses Catch2 testing framework. Tests are built with the main project and can be run with:
+**Run tests:**
 ```bash
 ctest --preset default --output-on-failure
+```
+
+**Run a specific test:**
+```bash
+./build/test/test_ringbuffer
+./build/test/ringbuffer_reader
+./build/test/test_ringbuffer_concur
+```
+
+**Code formatting:**
+```bash
+clang-format -i include/ringbuffer/*.hpp test/*.t.cpp src/*.cpp
 ```
 
 ## Code Architecture
@@ -36,6 +46,15 @@ The project implements a lock-free ring buffer for inter-process communication w
 - `rb::ring_buffer_reader<T>` - Reader for consuming data from the ring buffer
 - `rb::ring_buffer_iterator<T>` - Input iterator interface for ring buffer readers
 - `rb::ring_buffer_store` - Shared memory abstraction using boost::interprocess
+
+**Key Methods Added constexpr:**
+- `detail::ring_buffer_header::first()` - Extract first position from combined position value
+- `detail::ring_buffer_header::last()` - Extract last position from combined position value
+- `detail::ring_buffer_header::make_positions()` - Create combined position from first/last
+- `ring_buffer::capacity()` - Returns buffer capacity
+- `ring_buffer::empty()` - Checks if buffer is empty
+- `ring_buffer_reader::empty()` - Checks if no items available
+- `ring_buffer_iterator` constructor, equal(), increment() methods
 
 ### Architecture Details
 
@@ -55,7 +74,34 @@ The project implements a lock-free ring buffer for inter-process communication w
 
 ## Development Notes
 
-- C++23 standard with strict compiler warnings (-Wall -Wextra -Werror)
-- Ring buffer capacity must be a power of 2
-- Items larger than system page size are not supported
-- The implementation assumes 64-byte cache line size
+- **Standards**: C++23 with strict compiler warnings (-Wall -Wextra -Werror)
+- **Constraints**: Ring buffer capacity must be a power of 2
+- **Limitations**: Items larger than system page size are not supported
+- **Assumptions**: 64-byte cache line size
+- **Memory Ordering**: Uses acquire/release semantic for lock-free operations
+- **Position Encoding**: 64-bit value encodes first/last positions (32-bit each)
+
+## Code Standards
+
+**Formatting:**
+- 4-space indentation, never tabs
+- 120-character line limit
+- LLVM-based style with custom brace wrapping
+- Pointer alignment: `Type *ptr` (not `Type* ptr`)
+- LF line endings, trim trailing whitespace
+
+**Error Handling:**
+- Throws exceptions for invalid operations
+- Version compatibility checking between reader/writer
+- Size compatibility checking between stored/read data types
+
+## Testing
+
+**Test Framework:** Catch2 v3.10.0
+**Test Categories:**
+- Basic functionality (`test_ringbuffer`)
+- Reader operations (`ringbuffer_reader`)
+- Concurrent operations (`test_ringbuffer_concur`)
+- Memory store (`ringbufferstore`)
+
+**Concurrent Testing:** Custom test harness in `ringbuffer_concur.cpp` for multi-process scenarios
