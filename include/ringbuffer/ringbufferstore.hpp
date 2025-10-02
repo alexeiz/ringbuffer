@@ -30,6 +30,30 @@ struct shm_object_holder
         : obj_(ipc::open_only, std::string{shm_name}.c_str(), mode)
     {}
 
+    shm_object_holder(shm_object_holder const &) = delete;
+    shm_object_holder & operator=(shm_object_holder const &) = delete;
+
+    shm_object_holder(shm_object_holder && other) noexcept
+        : obj_(std::move(other.obj_))
+        , remove_on_close_(other.remove_on_close_)
+    {
+        other.remove_on_close_ = false;
+    }
+
+    shm_object_holder & operator=(shm_object_holder && other) noexcept
+    {
+        if (this != &other)
+        {
+            if (remove_on_close_)
+                ipc::shared_memory_object::remove(obj_.get_name());
+            obj_ = std::move(other.obj_);
+            remove_on_close_ = other.remove_on_close_;
+            other.remove_on_close_ = false;
+        }
+
+        return *this;
+    }
+
     ~shm_object_holder()
     {
         if (remove_on_close_)
@@ -55,6 +79,9 @@ public:
 public:
     ring_buffer_store(ring_buffer_store const &) = delete;
     ring_buffer_store & operator=(ring_buffer_store const &) = delete;
+    ring_buffer_store(ring_buffer_store &&) = default;
+    ring_buffer_store & operator=(ring_buffer_store &&) = default;
+    ~ring_buffer_store() = default;
 
     /// Construct a ring buffer in a newly created shared memory object.
     ///

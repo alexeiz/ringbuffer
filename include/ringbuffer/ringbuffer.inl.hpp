@@ -25,7 +25,7 @@ ring_buffer<T>::ring_buffer(std::string_view name, std::size_t capacity, bool re
 
     // data alignment relies on the statically defined cache line size being no less than the number reported
     // by the OS
-    if ((std::size_t) sysconf(_SC_LEVEL1_DCACHE_LINESIZE) > detail::ring_buffer_cache_linesize)
+    if (std::cmp_greater(sysconf(_SC_LEVEL1_DCACHE_LINESIZE), detail::ring_buffer_cache_linesize))
         throw std::runtime_error("system cache line size is not equal to the expected value");
 
     std::size_t page_size(sysconf(_SC_PAGESIZE));  // shared memory is aligned on system page size
