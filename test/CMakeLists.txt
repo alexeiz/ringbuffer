@@ -1,3 +1,5 @@
+include("${CMAKE_SOURCE_DIR}/cmake/deps-test.cmake")
+
 add_executable(test_ringbuffer
                ringbuffer.t.cpp
                ringbufferstore.t.cpp)

@@ -1,35 +1,12 @@
-cmake_minimum_required (VERSION 3.28)
+cmake_minimum_required(VERSION 3.28 FATAL_ERROR)
 
-project (ringbuffer)
-include("FindPkgConfig")
+project(ringbuffer
+    VERSION 1.0.0
+    DESCRIPTION "Lock-free ring buffer for inter-process communication"
+    LANGUAGES CXX
+)
 
-# set build type
-set(default_build_type "Debug")
-if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "Setting build type to '${default_build_type}'")
-
-  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
-      STRING "Choose build type." FORCE)
-
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
-      STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif()
-
-# set compiler flags
-set(CMAKE_CXX_STANDARD   23)
-set(CMAKE_CXX_EXTENSIONS OFF)
-string(REPLACE "-std=c++11" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wunused-variable")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wduplicated-cond -Wlogical-op")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrestrict")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
-
-# Clang-specific
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -Wno-unknown-warning-option")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
-endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # dependencies
 include(cmake/deps.cmake)
@@ -43,21 +20,80 @@ set(SOURCES
 add_library(ringbuffer ${SOURCES})
 target_link_libraries(ringbuffer PRIVATE ${LIBRARIES})
 
-include(CTest)
-if(BUILD_TESTING)
-  message(STATUS "Build tests")
+target_include_directories(ringbuffer
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
 
-  add_definitions(-DBUILD_TESTING)
-  include(cmake/deps-test.cmake)
+target_compile_features(ringbuffer PUBLIC cxx_std_23)
+target_compile_options(ringbuffer PRIVATE
+    -Wall
+    -Wextra
+    -Werror
+    -Wno-unused-parameter
+    -Wunused-variable
+    -Wduplicated-cond
+    -Wlogical-op
+    -Wrestrict
+    -ffast-math
+)
 
-  add_subdirectory(test)
-else()
-  message(STATUS "Skip tests")
+# Clang-specific options
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(ringbuffer PRIVATE
+        -stdlib=libc++
+        -Wno-unknown-warning-option
+    )
+    target_link_libraries(ringbuffer PRIVATE
+        -stdlib=libc++
+        -lc++abi
+    )
 endif()
 
-#INSTALL(
-#  TARGETS ringbuffer
-#  DIRECTORY ${CMAKE_SOURCE_DIR}/include
-#  FILES_MATCHING PATTERN "*.h*"
-#  INCLUDES DESTINATION include
-#  LIBRARY DESTINATION lib)
+include(CTest)
+if(BUILD_TESTING)
+    message(STATUS "Build tests")
+    enable_testing()
+    add_subdirectory(test)
+endif()
+
+# Installation rules
+include(GNUInstallDirs)
+
+install(TARGETS ringbuffer
+    EXPORT ringbufferTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(EXPORT ringbufferTargets
+    FILE ringbufferTargets.cmake
+    NAMESPACE ringbuffer::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ringbuffer
+)
+
+# Generate and install package configuration
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ringbufferConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ringbuffer
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ringbuffer
+)
