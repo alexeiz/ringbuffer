@@ -4,6 +4,8 @@
 
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
+#include <cstddef>
+#include <string>
 #include <string_view>
 
 namespace rb

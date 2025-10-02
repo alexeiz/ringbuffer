@@ -1,10 +1,16 @@
+#pragma once
+
+#include "ringbuffer.hpp"
+
 #include <algorithm>
 #include <limits>
 #include <unistd.h>
+#include <stdexcept>
+#include <utility>
+#include <new>
 
 namespace rb
 {
-
 // ring_buffer implementation
 
 template <ring_buffer_value T>
