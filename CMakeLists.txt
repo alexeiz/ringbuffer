@@ -11,45 +11,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # dependencies
 include(cmake/deps.cmake)
 
-# include directories and source files
-include_directories(include)
-set(SOURCES
-    src/ringbufferstore.cpp)
-
 # executable
-add_library(ringbuffer ${SOURCES})
-target_link_libraries(ringbuffer PRIVATE ${LIBRARIES})
+add_library(ringbuffer INTERFACE)
+target_link_libraries(ringbuffer INTERFACE ${LIBRARIES})
 
 target_include_directories(ringbuffer
-    PUBLIC
+    INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(ringbuffer PUBLIC cxx_std_23)
-target_compile_options(ringbuffer PRIVATE
-    -Wall
-    -Wextra
-    -Werror
-    -Wno-unused-parameter
-    -Wunused-variable
-    -Wduplicated-cond
-    -Wlogical-op
-    -Wrestrict
-    -ffast-math
-)
-
-# Clang-specific options
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(ringbuffer PRIVATE
-        -stdlib=libc++
-        -Wno-unknown-warning-option
-    )
-    target_link_libraries(ringbuffer PRIVATE
-        -stdlib=libc++
-        -lc++abi
-    )
-endif()
+target_compile_features(ringbuffer INTERFACE cxx_std_23)
 
 include(CTest)
 if(BUILD_TESTING)
