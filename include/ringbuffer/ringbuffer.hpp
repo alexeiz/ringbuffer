@@ -14,9 +14,11 @@
 
 namespace rb
 {
+auto constexpr system_page_size = 4096;  ///< system page size in bytes
+
 template <typename T>
 concept ring_buffer_value =
-    std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T> && (sizeof(T) <= 4096);
+    std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T> && (sizeof(T) <= system_page_size);
 
 namespace detail
 {
