@@ -8,32 +8,39 @@ This project uses CMake with Conan for dependency management.
 
 ### Build Commands
 
-**Install dependencies:**
+**Quick setup (requires just command runner):**
 ```bash
-conan install . --output-folder=build --build=missing -s build_type=Debug
+just conan-install
 ```
 
-**Configure and build:**
+**Install dependencies manually:**
 ```bash
-cmake --preset default
-cmake --build build --preset default
+conan install . --output-folder=build/debug --build=missing -s build_type=Debug
+conan install . --output-folder=build/release --build=missing -s build_type=Release
 ```
 
-**Run tests:**
+**Configure, build and run tests:**
 ```bash
-ctest --preset default --output-on-failure
+cmake --preset debug
+cmake --build build/debug --preset debug
+ctest --preset debug
+```
+
+**Or with a single command:**
+```bash
+cmake --workflow --preset debug
 ```
 
 **Run a specific test:**
 ```bash
-./build/test/test_ringbuffer
-./build/test/ringbuffer_reader
-./build/test/test_ringbuffer_concur
+./build/debug/test/test_ringbuffer
+./build/debug/test/ringbuffer_reader
+./build/debug/test/test_ringbuffer_concur --readers=2 --item-size=64 --rb-size=4096 --use-threads
 ```
 
 **Code formatting:**
 ```bash
-clang-format -i include/ringbuffer/*.hpp test/*.t.cpp src/*.cpp
+clang-format -i include/ringbuffer/*.hpp test/*.t.cpp
 ```
 
 ## Code Architecture
@@ -69,7 +76,6 @@ The project implements a lock-free ring buffer for inter-process communication w
 - `include/ringbuffer.hpp` - Main ring buffer class declarations
 - `include/ringbuffer.inl.hpp` - Template implementation details
 - `include/ringbufferstore.hpp` - Shared memory store implementation
-- `src/ringbufferstore.cpp` - Store implementation (minimal, mostly header-only)
 - `test/*.t.cpp` - Catch2 test files
 
 ## Development Notes
