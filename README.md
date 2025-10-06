@@ -1,5 +1,55 @@
 # ringbuffer
 
+A high-performance, lock-free ring buffer implementation for inter-process communication (IPC) in C++23. This library provides a single-producer, multiple-consumer queue where consumers can observe items without removing them from the queue.
+
+## Design and Implementation
+
+### Architecture Overview
+
+The ring buffer is built on three core components that work together to provide efficient lock-free inter-process communication:
+
+**`ring_buffer<T>`** serves as the writer interface with exclusive write access. A single producer pushes items to the buffer, automatically overwriting the oldest data when capacity is reached. The implementation ensures that consumers never see partially written items through careful use of memory ordering semantics.
+
+**`ring_buffer_reader<T>`** provides independent read access for multiple consumers. Each reader maintains its own position in the buffer and can process items at its own pace. Readers that fall too far behind are automatically advanced to prevent stale data access, jumping ahead by a configurable amount to resume from a valid position.
+
+**`ring_buffer_store`** abstracts the shared memory management layer using Boost.Interprocess. It handles the creation, opening, and mapping of POSIX shared memory objects, providing a clean interface for both writers and readers to access the same memory region across process boundaries.
+
+### Lock-Free Synchronization
+
+The implementation achieves thread-safety without locks through atomic operations and careful memory ordering. The core synchronization mechanism uses a single 64-bit atomic value that encodes both the first and last positions of the valid data range. This combined representation allows the writer to update both positions atomically, ensuring readers always see a consistent view of the buffer state.
+
+The writer uses release semantics when updating positions, guaranteeing that all item writes complete before readers can observe the new positions. Readers use acquire semantics when loading positions, ensuring they see all writes that happened before the position update. This acquire-release pairing provides the necessary synchronization without requiring expensive locks or full memory barriers.
+
+When a reader's position falls behind the valid range (because the writer has overwritten old data), the reader automatically adjusts by jumping forward to a position slightly ahead of the current first valid item. This underflow handling prevents readers from attempting to access overwritten data while minimizing the chance of immediate re-adjustment.
+
+### Memory Layout and Cache Optimization
+
+The shared memory region begins with a cache-line aligned header containing metadata (version, data size, offset, capacity) and the atomic position value. Data items follow at an offset chosen to maintain cache-line alignment, preventing false sharing between the header and data regions.
+
+Each data item occupies a cache-line aligned slot to ensure that writes to adjacent items don't cause cache coherency traffic. This alignment is critical for performance in multi-core systems where readers and the writer may be running simultaneously on different cores.
+
+The capacity must be a power of two, allowing position-to-index conversion using a fast bitwise AND operation instead of expensive modulo division. The position values continuously increment without wrapping, with overflow being handled correctly by unsigned integer arithmetic semantics.
+
+### Position Encoding and Wrapping
+
+The position encoding packs two 32-bit counters into a single 64-bit atomic value. The lower half contains the first valid position, and the upper half contains the last position (one past the last valid item). This encoding allows atomic updates while preserving 32-bit worth of wrapping space for each counter.
+
+Position values are never reset and naturally wrap around after 2^32 operations. The implementation relies on unsigned integer overflow behavior, where arithmetic operations produce correct results even after wrapping. For example, computing the buffer size as `last - first` yields the correct result regardless of whether either value has wrapped, as long as the actual queue size never exceeds capacity.
+
+### Type Requirements and Constraints
+
+Types stored in the ring buffer must satisfy strict requirements due to the shared memory nature of the implementation. Items must be trivially copyable since they are transferred via memory copy operations, and trivially destructible since no destructors are called when items are overwritten. Additionally, item sizes are limited to the system page size (typically 4096 bytes) to ensure efficient shared memory operations.
+
+The ring buffer capacity must not exceed the maximum value of an unsigned integer and must be a power of two. The actual usable capacity is one less than the specified value to maintain the distinction between empty and full states in the position encoding.
+
+### Iterator Support
+
+The library provides input iterator support through `ring_buffer_iterator<T>`, enabling range-based for loops and standard algorithm usage. The iterator advances the reader's position on increment and blocks on dereference if no items are available, providing a convenient interface while maintaining the underlying lock-free semantics.
+
+### Error Handling and Compatibility
+
+The implementation performs version checking to ensure that readers and writers use compatible buffer layouts. It also validates that the item size matches between the stored type and the reader's type, preventing silent data corruption from type mismatches. These checks occur at reader construction time, failing fast if incompatibilities are detected.
+
 ## Configure and build the project
 
 Install dependencies:
