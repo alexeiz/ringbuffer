@@ -15,6 +15,11 @@ struct shm_guard
         boost::interprocess::shared_memory_object::remove(name_);
     }
 
+    shm_guard(shm_guard const &) = delete;
+    shm_guard & operator=(shm_guard const &) = delete;
+    shm_guard(shm_guard &&) = delete;
+    shm_guard & operator=(shm_guard &&) = delete;
+
     ~shm_guard() { boost::interprocess::shared_memory_object::remove(name_); }
 
     char const * name_;
@@ -55,12 +60,12 @@ TEST_CASE("read_write_ring_buffer_store", "[ringbufferstore]")
     ring_buffer_store rbs_create{ring_buffer_store::create, shm_file, shm_size};
     ring_buffer_store rbs{ring_buffer_store::open, shm_file};
 
-    char * write_ptr = static_cast<char *>(rbs_create.address());
+    auto * write_ptr = static_cast<char *>(rbs_create.address());
     for (std::size_t i = 0; i != shm_size; ++i)
         write_ptr[i] = char(i);
 
     char read_write_diff = 0;
-    char const * read_ptr = static_cast<char const *>(rbs.address());
+    auto const * read_ptr = static_cast<char const *>(rbs.address());
     for (std::size_t i = 0; i != shm_size; ++i)
         read_write_diff += read_ptr[i] - write_ptr[i];
 

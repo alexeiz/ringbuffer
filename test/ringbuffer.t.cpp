@@ -1,9 +1,5 @@
 #include "ringbuffer/ringbuffer.hpp"
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 #include <catch2/catch_test_macros.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 
@@ -18,6 +14,11 @@ struct shm_guard
     {
         boost::interprocess::shared_memory_object::remove(name_);
     }
+
+    shm_guard(shm_guard const &) = delete;
+    shm_guard & operator=(shm_guard const &) = delete;
+    shm_guard(shm_guard &&) = delete;
+    shm_guard & operator=(shm_guard &&) = delete;
 
     ~shm_guard() { boost::interprocess::shared_memory_object::remove(name_); }
 
@@ -45,9 +46,9 @@ TEST_CASE("push_items_into_ring_buffer", "[ringbuffer]")
     shm_guard _{rb_name};
     ring_buffer<char> rb{rb_name, cap};
 
-    for (int i = 0; i != cap; ++i)
+    for (int i = 0; std::cmp_not_equal(i, cap); ++i)
     {
-        REQUIRE(rb.size() == i);
+        REQUIRE(std::cmp_equal(rb.size(), i));
         rb.push(char(i));
     }
 
@@ -73,9 +74,9 @@ TEST_CASE("emplace_items_into_ring_buffer", "[ringbufer]")
     shm_guard _{rb_name};
     ring_buffer<TestItem> rb{rb_name, cap};
 
-    for (int i = 0; i != cap; ++i)
+    for (int i = 0; std::cmp_not_equal(i, cap); ++i)
     {
-        REQUIRE(rb.size() == i);
+        REQUIRE(std::cmp_equal(rb.size(), i));
         rb.emplace(i, 1.0 + i);
     }
 
@@ -100,12 +101,12 @@ TEST_CASE("get_item_from_read_buffer", "[ringbuffer]")
     ring_buffer<TestItem> rbw{rb_name, rb_cap};
     ring_buffer_reader<TestItem> rbr{rb_name};
 
-    rbw.emplace(0x1234abcd, 3.1415926);
+    rbw.emplace(0x1234abcd, 3.7142);
     REQUIRE(rbr.size() == 1);
 
     auto item = rbr.get();
     REQUIRE(item.a_ == 0x1234abcd);
-    REQUIRE(item.b_ == 3.1415926);
+    REQUIRE(item.b_ == 3.7142);
 }
 
 TEST_CASE("next_item_in_read_buffer", "[ringbuffer]")
@@ -114,7 +115,7 @@ TEST_CASE("next_item_in_read_buffer", "[ringbuffer]")
     ring_buffer<TestItem> rbw{rb_name, rb_cap};
     ring_buffer_reader<TestItem> rbr{rb_name};
 
-    rbw.emplace(0x1234abcd, 3.1415926);
+    rbw.emplace(0x1234abcd, 6.1415);
     REQUIRE(rbr.size() == 1);
 
     rbr.next();
@@ -134,7 +135,7 @@ TEST_CASE("next_n_items_in_read_buffer", "[ringbuffer]")
     for (int i = 0; i != count; ++i)
         rbw.push(i);
 
-    REQUIRE(rbr.size() == count);
+    REQUIRE(std::cmp_equal(rbr.size(), count));
     rbr.next(count);
     REQUIRE(rbr.size() == 0);
 
@@ -142,7 +143,7 @@ TEST_CASE("next_n_items_in_read_buffer", "[ringbuffer]")
     for (int i = 0; i != count; ++i)
         rbw.push(i);
 
-    REQUIRE(rbr.size() == count);
+    REQUIRE(std::cmp_equal(rbr.size(), count));
     rbr.next(count - 1);
     REQUIRE(rbr.size() == 1);
     rbr.next();
@@ -152,7 +153,7 @@ TEST_CASE("next_n_items_in_read_buffer", "[ringbuffer]")
     for (int i = 0; i != count; ++i)
         rbw.push(i);
 
-    REQUIRE(rbr.size() == count);
+    REQUIRE(std::cmp_equal(rbr.size(), count));
     rbr.next(count + 1);
     REQUIRE(rbr.size() == 0);
 }
@@ -218,7 +219,7 @@ TEST_CASE("read_after_write_overflow", "[ringbuffer]")
     // exhaust all remaining items
     for (std::size_t i = 0; i != cur_size; ++i)
     {
-        REQUIRE(rbr.get() == cur_data + i + 1);
+        REQUIRE(std::cmp_equal(rbr.get(), cur_data + i + 1));
         rbr.next();
     }
 

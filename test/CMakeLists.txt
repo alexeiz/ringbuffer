@@ -19,6 +19,10 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -stdlib=libc++
         -Wno-unknown-warning-option
     )
+    list(APPEND TEST_LIBRARIES
+        -lc++
+        -lc++abi
+    )
 endif()
 
 add_executable(test_ringbuffer

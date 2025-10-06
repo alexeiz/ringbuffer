@@ -1,0 +1,91 @@
+---
+# Project-wide clang-tidy configuration for ringbuffer
+# This configuration enables a broad set of bug-finding and modernization checks,
+# while disabling rules that conflict with this project's design and style.
+#
+# Notes:
+# - Targets C++23.
+# - Follows formatting from .clang-format (LLVM-based) via FormatStyle: file.
+# - Avoids noisy rules for low-level constructs (unions, reinterpret_cast, pointer arithmetic),
+#   which are intentionally used for shared-memory and lock-free operations.
+
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  cppcoreguidelines-*,
+  -readability-identifier-naming,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-redundant-access-specifiers,
+  -readability-braces-around-statements,
+  -readability-implicit-bool-conversion,
+  -readability-math-missing-parentheses,
+  -readability-named-parameter,
+  -readability-function-cognitive-complexity,
+  -readability-uppercase-literal-suffix,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-default-member-init,
+  -modernize-use-nodiscard,
+  -modernize-use-equals-default,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-use-default-member-init,
+  -cppcoreguidelines-pro-type-member-init,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-narrowing-conversions,
+  -bugprone-narrowing-conversions,
+  -bugprone-exception-escape,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-macro-parentheses,
+  -clang-diagnostic-unknown-warning-option,
+  -clang-diagnostic-error,
+  -performance-avoid-endl
+
+# Restrict header analysis to this repository. This keeps noise from system/third-party headers low.
+HeaderFilterRegex: '(^|.*/)ringbuffer/(include|src|test)/.*'
+
+# Treat static analyzer issues as errors to highlight potential correctness bugs.
+WarningsAsErrors: >
+  clang-analyzer-*
+
+# Use formatting rules from .clang-format
+FormatStyle: file
+
+# Make clang-tidy aware of the language standard (useful when compile_commands aren’t present)
+ExtraArgs: [
+  "-std=c++23"
+]
+
+# Configure noisy checks with project-appropriate thresholds and allowances
+CheckOptions:
+  # Allow conditions with integral types (common in low-level code, loops, syscalls)
+  - key: readability-implicit-bool-conversion.AllowIntegerConditions
+    value: 'true'
+
+  # Keep short single-statement 'if' without braces acceptable (match common style)
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '1'
+
+  # Prefer modernize checks but avoid aggressive auto adoption everywhere
+  - key: modernize-use-auto.MinTypeNameLength
+    value: '0'
+
+  # Permit std::move on trivially copyable types without warning
+  - key: performance-move-const-arg.CheckTriviallyCopyableMove
+    value: 'false'
+
+  # Don't enforce narrowing literal suffixes too aggressively in tests
+  - key: bugprone-narrowing-conversions.WarnWithinTemplateInstantiation
+    value: 'false'

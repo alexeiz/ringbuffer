@@ -8,8 +8,12 @@ project(ringbuffer
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# option to enable clang-tidy
+option(ENABLE_CLANG_TIDY "Enable clang-tidy checks" OFF)
+
 # dependencies
 include(cmake/deps.cmake)
+include(cmake/clang-tidy.cmake)
 
 # executable
 add_library(ringbuffer INTERFACE)

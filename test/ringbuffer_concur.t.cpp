@@ -4,23 +4,23 @@
 #include <boost/program_options.hpp>
 #include <scope_exit/scope_exit.hpp>
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <thread>
 #include <chrono>
 #include <utility>
-
 #include <array>
 #include <stdexcept>
-
 #include <mutex>
 
 #include <cstdio>
 #include <cassert>
+#include <cerrno>
 #include <climits>
+
 #include <unistd.h>
-#include <errno.h>
 #include <sys/wait.h>
 
 namespace
@@ -42,6 +42,11 @@ struct shm_guard
         ipc::shared_memory_object::remove(name_);
     }
 
+    shm_guard(shm_guard const &) = delete;
+    shm_guard & operator=(shm_guard const &) = delete;
+    shm_guard(shm_guard &&) = delete;
+    shm_guard & operator=(shm_guard &&) = delete;
+
     ~shm_guard() { ipc::shared_memory_object::remove(name_); }
 
     char const * name_;
@@ -60,18 +65,18 @@ public:
         }
     }
 
-    void wait(int count = 1)
+    void wait(int count = 1) const
     {
         for (int i = 0; i != count; ++i)
         {
-            char a;
+            char a{};
             auto bytes = read(pipe_read_, &a, 1);
             assert(bytes == 1);
             (void) bytes;
         }
     }
 
-    void signal(int count = 1)
+    void signal(int count = 1) const
     {
         for (int i = 0; i != count; ++i)
         {
@@ -304,7 +309,7 @@ void run_writer_impl(unsigned readers, unsigned item_count, unsigned rb_size)
     {
         rb.emplace(i);
 
-        int volatile __attribute__((unused)) delay;
+        [[maybe_unused]] int volatile delay = 0;
         delay = 1;
         delay = 1;
         delay = 1;
@@ -377,7 +382,7 @@ void wait_reader_processes()
 {
     for (auto rid : reader_pids)
     {
-        int status;
+        int status = 0;
         waitpid(rid, &status, 0);
     }
 }
@@ -420,8 +425,7 @@ void run_test(unsigned readers, size_t item_size, unsigned item_count, size_t rb
 int main(int argc, char * argv[])
 try
 {
-    cin.sync_with_stdio(false);
-    cout.sync_with_stdio(false);
+    std::ios::sync_with_stdio(false);
 
     auto readers = std::thread::hardware_concurrency() - 1;  // one writer and the rest are readers
     size_t item_size = 16;
@@ -452,22 +456,21 @@ try
     po::store(po::parse_command_line(argc, argv, desc), opt);
     po::notify(opt);
 
-    if (opt.count("help"))
+    if (opt.contains("help"))
     {
         cout << desc << endl;
         exit(0);
     }
 
     // parameter validation
-    if (item_size < 16)
-        item_size = 16;
+    item_size = std::max(item_size, 16ul);
     item_size = ((item_size - 1) / 16 + 1) * 16;  // align to 16 bytes
 
     // adjust to the power of 2
     if ((rb_size & (rb_size - 1)) != 0)
         rb_size = 1ul << (CHAR_BIT * sizeof(rb_size) - __builtin_clzl(rb_size));
 
-    if (opt.count("use-threads"))
+    if (opt.contains("use-threads"))
         use_threads = true;
 
     run_test(readers, item_size, item_count, rb_size, use_threads);

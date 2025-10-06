@@ -5,8 +5,10 @@
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <cstddef>
+#include <new>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace rb
 {
@@ -22,7 +24,10 @@ struct shm_object_holder
         : obj_(ipc::create_only, std::string{shm_name}.c_str(), mode)
         , remove_on_close_(remove)
     {
-        obj_.truncate(size);
+        if (!std::in_range<off_t>(size))
+            throw std::bad_alloc();
+
+        obj_.truncate(off_t(size));
     }
 
     // Open an existing shared memory object.
