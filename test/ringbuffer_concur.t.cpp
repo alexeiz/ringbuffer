@@ -5,6 +5,7 @@
 #include <scope_exit/scope_exit.hpp>
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -94,7 +95,7 @@ private:
 };
 
 
-inline unsigned long now_rdtsc()
+inline unsigned long now_tsc()
 {
     union
     {
@@ -107,35 +108,15 @@ inline unsigned long now_rdtsc()
         unsigned long tsc;
     } ts;
 
-    asm volatile("rdtsc" : "=a"(ts.regs.lo), "=d"(ts.regs.hi));
+    // __asm__ __volatile__("rdtscp" : "=a"(ts.regs.lo), "=c"(ts.regs.hi)::"%rdx");
+    // __asm__ __volatile__("lfence" ::: "memory");
+    __asm__ __volatile__("rdtsc" : "=a"(ts.regs.lo), "=d"(ts.regs.hi));
     return ts.tsc;
 }
-
 
 inline auto now_chrono() { return chrono::high_resolution_clock::now(); }
 
-
-/*
-inline
-unsigned long now_rdtscp()
-{
-    union
-    {
-        struct
-        {
-            unsigned lo;
-            unsigned hi;
-        } regs;
-
-        unsigned long tsc;
-    } ts;
-
-    asm volatile("rdtscp" : "=a" (ts.regs.lo), "=c" (ts.regs.hi) :: "%rdx");
-    return ts.tsc;
-}
-
-inline
-unsigned get_cpufreq_khz()
+inline unsigned get_cpufreq_khz()
 {
     ifstream sys_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
     sys_file.exceptions(ios::badbit | ios::failbit);
@@ -144,7 +125,6 @@ unsigned get_cpufreq_khz()
     sys_file >> cur_freq;
     return cur_freq;
 }
-*/
 
 
 // simple synchronized logger implementation
@@ -173,7 +153,7 @@ struct data_item
     constexpr static size_t payload_size = (Size - sizeof(unsigned long) - sizeof(int)) / sizeof(int);
 
     data_item(unsigned n)
-        : timestamp{now_rdtsc()}
+        : timestamp{now_tsc()}
         , seq{n}
     {}
 
@@ -222,7 +202,7 @@ void run_reader_impl()
 
         if (rb.empty())
         {
-            auto lat = now_rdtsc() - cur.timestamp;
+            auto lat = now_tsc() - cur.timestamp;
             latency += lat;
             ++latency_items;
             if (latency_min > lat)
@@ -248,14 +228,15 @@ void run_reader_impl()
     double items_sec =
         read_items / (double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / 1000'000'000);
     double bytes_sec = items_sec * sizeof(Item);
+    auto cpu_khz = get_cpufreq_khz();
 
     // clang-format off
     log_msg("reader ", getpid(), ":", this_thread::get_id(), "\n",
-            "  gaps           : ", gaps, "\n",
-            "  errors         : ", errors, "\n",
-            "  throughput     : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec\n",
-            "  average latency: ", latency / double(latency_items), " cycles\n",
-            "  min latency    : ", latency_min, " cycles");
+            "  gaps            : ", gaps, "\n",
+            "  errors          : ", errors, "\n",
+            "  throughput      : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec\n",
+            "  average latency : ", latency / double(latency_items), " cycles, ", latency / double(latency_items) / cpu_khz * 1000, " usec\n",
+            "  min latency     : ", latency_min, " cycles, ", double(latency_min) / cpu_khz * 1000, " usec");
     // clang-format on
 }
 
