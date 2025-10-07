@@ -16,12 +16,7 @@ set(TEST_COMPILE_OPTIONS
 # Clang-specific options
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     list(APPEND TEST_COMPILE_OPTIONS
-        -stdlib=libc++
         -Wno-unknown-warning-option
-    )
-    list(APPEND TEST_LIBRARIES
-        -lc++
-        -lc++abi
     )
 endif()
 
