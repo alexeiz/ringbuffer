@@ -36,40 +36,7 @@ endif()
 
 # Installation rules
 include(GNUInstallDirs)
-
-install(TARGETS ringbuffer
-    EXPORT ringbufferTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-install(EXPORT ringbufferTargets
-    FILE ringbufferTargets.cmake
-    NAMESPACE ringbuffer::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ringbuffer
-)
-
-# Generate and install package configuration
-include(CMakePackageConfigHelpers)
-
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
-
-configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ringbufferConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ringbuffer
-)
-
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/ringbufferConfigVersion.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ringbuffer
-)
+include(cmake/genconfig.cmake)
+include(cmake/install.cmake)
