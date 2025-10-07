@@ -164,9 +164,10 @@ class ring_buffer_reader
 public:
     /// Construct the ring buffer reader attached to the `shm_name` shared memory object.
     ///
-    /// \param name
+    /// \param name              shared memory object name
+    /// \param underflow_fixup   number of items to jump over on read_pos underflow
     /// \throws std::runtime_exception if mapping a shared memory region fails
-    ring_buffer_reader(std::string_view name);
+    ring_buffer_reader(std::string_view name, unsigned underflow_fixup = 128);
 
     /// \returns number of items in the ring buffer available to read by this reader
     std::size_t size() const;
@@ -198,9 +199,8 @@ private:
     void spin_wait(unsigned long pos) const;
 
 private:
-    static constexpr unsigned underflow_fixup_ = 128;  ///< number of items to jump over on read_pos underflow
-
     std::shared_ptr<ring_buffer_store> store_;  ///< shared memory backing store for the ring buffer
+    unsigned underflow_fixup_;                  ///< number of items to jump over on read_pos underflow
     unsigned mutable read_pos_;                 ///< position of the next item to read
     header_t const * header_;                   ///< ring buffer header infomation (stored in `store_`)
     data_t const * data_;                       ///< actual items (stored in `store_`)

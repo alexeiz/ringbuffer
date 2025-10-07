@@ -92,8 +92,9 @@ inline std::size_t ring_buffer<T>::size() const
 // ring_buffer_reader implementation
 
 template <ring_buffer_value T>
-ring_buffer_reader<T>::ring_buffer_reader(std::string_view name)
+ring_buffer_reader<T>::ring_buffer_reader(std::string_view name, unsigned underflow_fixup)
     : store_{std::make_shared<ring_buffer_store>(ring_buffer_store::open, name)}
+    , underflow_fixup_{underflow_fixup}
     , read_pos_{0}
     , header_{static_cast<header_t *>(store_->address())}
     , data_{reinterpret_cast<data_t *>(static_cast<char *>(store_->address()) + header_->data_offset)}
