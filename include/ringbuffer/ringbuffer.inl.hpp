@@ -151,8 +151,6 @@ inline void ring_buffer_reader<T>::spin_wait(unsigned long pos) const
 template <ring_buffer_value T>
 T ring_buffer_reader<T>::get() const
 {
-    [[assume(capacity_mask_ >= 0)]];
-
     auto pos = header_->positions.load(std::memory_order_acquire);
     adjust_read_pos(pos);
     spin_wait(pos);
