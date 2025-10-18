@@ -5,6 +5,6 @@ list(APPEND TEST_LIBRARIES Catch2::Catch2WithMain)
 include("${CMAKE_CURRENT_LIST_DIR}/CPM.cmake")
 
 CPMAddPackage(
-    URI "gh:alexeiz/scope-exit@0.2.3"
+    URI "gh:alexeiz/scope-exit@0.2.6"
     OPTIONS "BUILD_TESTING OFF")
 list(APPEND TEST_LIBRARIES scope_exit)
