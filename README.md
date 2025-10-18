@@ -52,12 +52,6 @@ The implementation performs version checking to ensure that readers and writers 
 
 ## Configure and build the project
 
-Install dependencies:
-```shell
-# requires just command runner
-just conan-install
-```
-
 Configure, build and run tests:
 ```shell
 cmake --preset debug

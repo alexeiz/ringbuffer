@@ -9,12 +9,6 @@
 
 ## Build, Lint, and Test Commands
 
-### Quick Start (Recommended)
-- **Install dependencies (both debug and release)**: `just conan-install` (requires `just` command runner)
-- **Or manually**: 
-  - Debug: `conan install . --output-folder=build/debug --build=missing -s build_type=Debug`
-  - Release: `conan install . --output-folder=build/release --build=missing -s build_type=Release`
-
 ### Build Commands
 - **Configure, build, and test (all-in-one)**: `cmake --workflow --preset debug` or `cmake --workflow --preset release`
 - **Configure project**: `cmake --preset debug` or `cmake --preset release`
@@ -99,64 +93,28 @@
   - Includes generated presets from `build/debug/CMakePresets.json` and `build/release/CMakePresets.json` (created by Conan)
   - Workflow presets for one-command configure+build+test
 - **Build Toolchain**: Supports both GCC (default) and Clang with C++23 standard
-- **Optional Tools**: 
+- **Optional Tools**:
   - `clang-format` for code formatting (`.clang-format` config)
   - `clang-tidy` for static analysis (`.clang-tidy` config, enable with `-DENABLE_CLANG_TIDY=ON`)
-  - `just` command runner for simplified dependency installation (`justfile`)
   - `ctest` for test execution
-
-## File Organization & Key Files
-```
-├── include/ringbuffer/          # Public API headers (header-only library)
-│   ├── ringbuffer.hpp          # Main ring buffer class declarations
-│   ├── ringbuffer.inl.hpp      # Template implementations
-│   └── ringbufferstore.hpp     # Shared memory store
-├── test/                       # Test suite
-│   ├── CMakeLists.txt          # Test build configuration
-│   ├── ringbuffer.t.cpp        # Core functionality tests
-│   ├── ringbuffer_reader.t.cpp # Reader utility program
-│   ├── ringbuffer_concur.t.cpp # Concurrent/multi-process tests
-│   └── ringbufferstore.t.cpp   # Shared memory store tests
-├── cmake/                      # Build system configuration
-│   ├── deps.cmake              # Main dependency management
-│   ├── deps-test.cmake         # Test dependency management
-│   ├── get_cpm.cmake           # CPM package manager
-│   ├── clang-tidy.cmake        # Clang-tidy integration
-│   └── ringbufferConfig.cmake.in  # CMake package config template
-├── build/                      # Generated build artifacts (gitignored)
-│   ├── debug/                  # Debug build output with Conan-generated presets
-│   └── release/                # Release build output with Conan-generated presets
-├── .clang-format               # Code formatting rules (LLVM base, PointerAlignment: Middle)
-├── .clang-tidy                 # Static analysis configuration (comprehensive checks)
-├── .editorconfig               # Editor configuration (LF, 120 chars, no trailing whitespace)
-├── conanfile.txt               # Package dependencies (Boost 1.88.0, Catch2 3.10.0)
-├── CMakeLists.txt              # Main build configuration (header-only library)
-├── CMakePresets.json           # Build presets (debug, release, workflows)
-├── justfile                    # Just command runner recipes (simplified conan install)
-├── README.md                   # Usage examples and API documentation
-├── AGENTS.md                   # AI agent guidelines (this file)
-├── CLAUDE.md                   # Claude Code specific instructions
-└── CRUSH.md                    # Quick reference guide
-```
 
 ## Development Workflow & Best Practices
 - **Before Changes**: Always run existing tests to establish baseline: `ctest --preset debug --output-on-failure`
-- **During Development**: 
+- **During Development**:
   - Use `cmake --build build --preset debug` for incremental builds
   - Use `cmake --workflow --preset debug` for full configure-build-test cycle
   - Leverage separate debug/release builds for performance comparison
-- **Code Changes**: 
+- **Code Changes**:
   - Format code with `clang-format -i` before commits; follow existing naming conventions
   - Run clang-tidy for static analysis when enabled (`-DENABLE_CLANG_TIDY=ON`)
   - Keep changes surgical and minimal, especially in header-only implementation
-- **Testing Strategy**: 
+- **Testing Strategy**:
   - Add unit tests for new APIs in appropriate test files
   - Use concurrent tests for race condition validation
   - Test both debug and release builds when performance-critical
 - **Error Handling**: Prefer exceptions over error codes; validate preconditions at API boundaries
 - **Performance**: Profile concurrent scenarios with `test_ringbuffer_concur` utility before claiming performance improvements
 - **Installation**: Test package installation with `cmake --install build/debug --prefix /tmp/test-install` to verify CMake config correctness
-- **Build System**: Use `justfile` recipes for common tasks (`just conan-install` for dependencies)
 
 ## Tooling Configuration Files
 - **`.clang-format`**: LLVM-based style with 4-space indent, 120-char limit, `PointerAlignment: Middle`, custom brace wrapping
@@ -166,4 +124,3 @@
   - Magic numbers (cache line size, page size, etc. are intentional)
 - **`.editorconfig`**: Universal settings (LF line endings, trim trailing whitespace, 120-char limit)
 - **`.gitignore`**: Excludes `build/`, `build-release/`, `.cache/`, `.vscode/`, `.vs/`, `.aider*`, compiled objects, and executables
-- **`justfile`**: Contains `conan-install` recipe for installing both debug and release dependencies in one command

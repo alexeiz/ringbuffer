@@ -8,17 +8,6 @@ This project uses CMake with Conan for dependency management.
 
 ### Build Commands
 
-**Quick setup (requires just command runner):**
-```bash
-just conan-install
-```
-
-**Install dependencies manually:**
-```bash
-conan install . --output-folder=build/debug --build=missing -s build_type=Debug
-conan install . --output-folder=build/release --build=missing -s build_type=Release
-```
-
 **Configure, build and run tests:**
 ```bash
 cmake --preset debug

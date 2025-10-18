@@ -3,28 +3,34 @@
     "vendor": {
         "conan": {}
     },
-    "include": [
-        "build/debug/CMakePresets.json",
-        "build/release/CMakePresets.json"
-    ],
     "configurePresets": [
         {
             "name": "debug",
-            "inherits": "conan-debug",
+            "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": {
                     "type": "BOOL",
                     "value": "TRUE"
+                },
+                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/conan_provider.cmake"
                 }
             }
         },
         {
             "name": "release",
-            "inherits": "conan-release",
+            "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": {
                     "type": "BOOL",
                     "value": "TRUE"
+                },
+                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/conan_provider.cmake"
                 }
             }
         }
