@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.28 FATAL_ERROR)
 
 project(ringbuffer
-    VERSION 0.1.1
+    VERSION 0.1.2
     DESCRIPTION "Lock-free ring buffer for inter-process communication"
     LANGUAGES CXX
 )
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # option to enable clang-tidy
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks" OFF)
