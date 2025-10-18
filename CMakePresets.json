@@ -1,94 +1,94 @@
 {
-    "version": 6,
-    "vendor": {
-        "conan": {}
+  "version": 6,
+  "vendor": {
+    "conan": {}
+  },
+  "configurePresets": [
+    {
+      "name": "common",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": {
+          "type": "BOOL",
+          "value": "TRUE"
+        },
+        "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/cmake/conan_provider.cmake"
+        }
+      }
     },
-    "configurePresets": [
+    {
+      "name": "debug",
+      "inherits": ["common"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": ["common"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "debug",
+      "steps": [
         {
-            "name": "debug",
-            "binaryDir": "${sourceDir}/build/debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": {
-                    "type": "BOOL",
-                    "value": "TRUE"
-                },
-                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/cmake/conan_provider.cmake"
-                }
-            }
+          "type": "configure",
+          "name": "debug"
         },
         {
-            "name": "release",
-            "binaryDir": "${sourceDir}/build/release",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": {
-                    "type": "BOOL",
-                    "value": "TRUE"
-                },
-                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/cmake/conan_provider.cmake"
-                }
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "debug",
-            "configurePreset": "debug"
+          "type": "build",
+          "name": "debug"
         },
         {
-            "name": "release",
-            "configurePreset": "release"
+          "type": "test",
+          "name": "debug"
         }
-    ],
-    "testPresets": [
+      ]
+    },
+    {
+      "name": "release",
+      "steps": [
         {
-            "name": "debug",
-            "configurePreset": "debug"
+          "type": "configure",
+          "name": "release"
         },
         {
-            "name": "release",
-            "configurePreset": "release"
-        }
-    ],
-    "workflowPresets": [
-        {
-            "name": "debug",
-            "steps": [
-                {
-                    "type": "configure",
-                    "name": "debug"
-                },
-                {
-                    "type": "build",
-                    "name": "debug"
-                },
-                {
-                    "type": "test",
-                    "name": "debug"
-                }
-            ]
+          "type": "build",
+          "name": "release"
         },
         {
-            "name": "release",
-            "steps": [
-                {
-                    "type": "configure",
-                    "name": "release"
-                },
-                {
-                    "type": "build",
-                    "name": "release"
-                },
-                {
-                    "type": "test",
-                    "name": "release"
-                }
-            ]
+          "type": "test",
+          "name": "release"
         }
-    ]
+      ]
+    }
+  ]
 }
