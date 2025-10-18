@@ -87,7 +87,7 @@
   - `boost/1.88.0` - Provides interprocess communication primitives (boost::interprocess)
   - `catch2/3.10.0` - Test framework for unit and integration tests
   - Boost program_options used for concurrent test command-line argument parsing
-- **CPM (CMake Package Manager)**: Used for additional dependencies via `cmake/get_cpm.cmake`
+- **CPM (CMake Package Manager)**: Used for additional dependencies via `cmake/CPM.cmake`
   - `scope-exit@0.2.3` - RAII scope guard utilities (from github.com/alexeiz/scope-exit)
 - **CMake Build System**: Uses presets pattern with `CMakePresets.json` for standardized configurations
   - Includes generated presets from `build/debug/CMakePresets.json` and `build/release/CMakePresets.json` (created by Conan)
