@@ -5,7 +5,7 @@
 - **Public API**: Headers live in `include/ringbuffer/` with paired `.inl.hpp` files included at the end of each header for template implementations.
 - **Testing**: Tests mirror the production layout under `test/`; `test_ringbuffer_concur` covers multi-process/thread scenarios, while other suites target unit-level APIs.
 - **Build System**: `cmake/` contains dependency management; `build/debug/` and `build/release/` are disposable output directories - never commit generated artifacts or Conan/CMake cache files.
-- **Configuration**: Project uses Conan for dependencies (Boost 1.88.0, Catch2 3.10.0) and CMake presets for standardized builds with separate debug/release configurations.
+- **Configuration**: Project uses Conan for dependencies and CMake presets for standardized builds with separate debug/release configurations.
 
 ## Build, Lint, and Test Commands
 
@@ -43,7 +43,7 @@
 - **Template Requirements**: Use C++20 concepts (`ring_buffer_value`) to constrain types T to be trivially copyable/destructible and ≤4KB (system page size)
 
 ## Testing Guidelines
-- **Framework**: Catch2 v3.10.0 drives all test harnesses; use descriptive tags (e.g., `[ringbufferstore]`, `[basic]`, `[concurrent]`) for focused test runs
+- **Framework**: Catch2 drives all test harnesses; use descriptive tags (e.g., `[ringbufferstore]`, `[basic]`, `[concurrent]`) for focused test runs
 - **Test Structure**:
   - `test_ringbuffer`: Unit tests for core ring buffer functionality and store operations (combines `ringbuffer.t.cpp` and `ringbufferstore.t.cpp`)
   - `test_ringbuffer_concur`: Multi-process/thread concurrent testing with configurable parameters (`ringbuffer_concur.t.cpp`)
@@ -84,11 +84,7 @@
 
 ## Dependencies & External Libraries
 - **Conan Package Manager**: Used for dependency management, configured in `conanfile.txt`
-  - `boost/1.88.0` - Provides interprocess communication primitives (boost::interprocess)
-  - `catch2/3.10.0` - Test framework for unit and integration tests
-  - Boost program_options used for concurrent test command-line argument parsing
 - **CPM (CMake Package Manager)**: Used for additional dependencies via `cmake/CPM.cmake`
-  - `scope-exit@0.2.3` - RAII scope guard utilities (from github.com/alexeiz/scope-exit)
 - **CMake Build System**: Uses presets pattern with `CMakePresets.json` for standardized configurations
   - Includes generated presets from `build/debug/CMakePresets.json` and `build/release/CMakePresets.json` (created by Conan)
   - Workflow presets for one-command configure+build+test
@@ -123,4 +119,3 @@
   - Naming conventions (follows project's snake_case everywhere)
   - Magic numbers (cache line size, page size, etc. are intentional)
 - **`.editorconfig`**: Universal settings (LF line endings, trim trailing whitespace, 120-char limit)
-- **`.gitignore`**: Excludes `build/`, `build-release/`, `.cache/`, `.vscode/`, `.vs/`, `.aider*`, compiled objects, and executables
