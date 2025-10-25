@@ -109,6 +109,24 @@ TEST_CASE("get_item_from_read_buffer", "[ringbuffer]")
     REQUIRE(item.b_ == 3.7142);
 }
 
+TEST_CASE("try_get_item_from_read_buffer", "[ringbuffer]")
+{
+    shm_guard _{rb_name};
+    ring_buffer<TestItem> rbw{rb_name, rb_cap};
+    ring_buffer_reader<TestItem> rbr{rb_name};
+
+    auto empty_item = rbr.try_get();
+    REQUIRE(!empty_item.has_value());
+
+    rbw.emplace(0x1234abcd, 3.7142);
+    REQUIRE(rbr.size() == 1);
+
+    auto item = rbr.try_get();
+    REQUIRE(item.has_value());
+    REQUIRE(item->a_ == 0x1234abcd);
+    REQUIRE(item->b_ == 3.7142);
+}
+
 TEST_CASE("next_item_in_read_buffer", "[ringbuffer]")
 {
     shm_guard _{rb_name};

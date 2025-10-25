@@ -11,6 +11,7 @@
 #include <memory>
 #include <atomic>
 #include <type_traits>
+#include <optional>
 
 namespace rb
 {
@@ -177,8 +178,14 @@ public:
 
     /// Get the current item.
     ///
-    /// \note blocks in the spinning loop if no items are available
+    /// \returns the current item
+    /// \note blocks in the spinning loop until an item is available
     T get() const;
+
+    /// Get the current item if available.
+    ///
+    /// \returns `std::nullopt` if no items are available, or the current item otherwise
+    std::optional<T> try_get() const;
 
     /// Advances read position to `n` items forward.
     ///

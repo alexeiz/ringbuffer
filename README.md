@@ -108,7 +108,28 @@ int main() {
 }
 ```
 
-### 3. Range-based Access Patterns
+### 3. Non-blocking Item Retrieval with try_get
+
+```cpp
+#include "ringbuffer/ringbuffer.hpp"
+#include <string>
+#include <iostream>
+
+int main() {
+    rb::ring_buffer_reader<int> reader("my_ring_buffer");
+
+    // Try to get an item without blocking
+    auto item = reader.try_get();
+    if (item.has_value()) {
+        std::cout << "Read value: " << item.value() << std::endl;
+        reader.next();  // Advance the read position
+    } else {
+        std::cout << "No items available" << std::endl;
+    }
+}
+```
+
+### 4. Range-based Access Patterns
 
 ```cpp
 #include "ringbuffer/ringbuffer.hpp"
@@ -125,7 +146,7 @@ int main() {
 }
 ```
 
-### 4. Concurrent Usage Examples
+### 5. Concurrent Usage Examples
 
 The ring buffer supports single-producer, multiple-consumer patterns across processes:
 
@@ -159,7 +180,7 @@ int main() {
 }
 ```
 
-### 5. Error Handling Patterns
+### 6. Error Handling Patterns
 
 ```cpp
 #include "ringbuffer/ringbuffer.hpp"
@@ -185,7 +206,7 @@ int main() {
 }
 ```
 
-### 6. Command-line Utility Usage
+### 7. Command-line Utility Usage
 
 The project includes a test utility for benchmarking and concurrent testing:
 

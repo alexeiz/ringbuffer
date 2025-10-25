@@ -170,6 +170,24 @@ T ring_buffer_reader<T>::get() const
 }
 
 template <ring_buffer_value T>
+std::optional<T> ring_buffer_reader<T>::try_get() const
+{
+    auto pos = header_->positions.load(std::memory_order_acquire);
+    adjust_read_pos(pos);
+
+    unsigned last = header_t::last(pos);
+    if (read_pos_ >= last)
+        return std::nullopt;  // no items available
+
+    T item(data_[read_pos_ & capacity_mask_].item);
+
+    // We don't need to re-check positions like in get(), because we're only
+    // checking availability and returning immediately. The data is already
+    // committed to memory at this point.
+    return item;
+}
+
+template <ring_buffer_value T>
 inline void ring_buffer_reader<T>::next(std::size_t n)
 {
     read_pos_ += n;
