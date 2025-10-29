@@ -84,6 +84,7 @@
 
 ## Dependencies & External Libraries
 - **Conan Package Manager**: Used for dependency management, configured in `conanfile.txt`
+  - use `check-deps.pl` to check if new versions of dependencies are available
 - **CPM (CMake Package Manager)**: Used for additional dependencies via `cmake/CPM.cmake`
 - **CMake Build System**: Uses presets pattern with `CMakePresets.json` for standardized configurations
   - Includes generated presets from `build/debug/CMakePresets.json` and `build/release/CMakePresets.json` (created by Conan)
