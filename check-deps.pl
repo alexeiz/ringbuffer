@@ -4,18 +4,24 @@ use strict;
 use warnings;
 use version;
 use feature 'say';
+use Pod::Usage;
 
-# configuration
-my $CONAN_REMOTE = 'conancenter';
-my $CONANFILE = 'conanfile.txt';
+# Configuration
+use constant {
+    CONAN_REMOTE => 'conancenter',
+    CONANFILE    => 'conanfile.txt',
+};
 
 sub extract_dependencies {
-    open my $fh, '<', $CONANFILE or die "Unable to open $CONANFILE: $!\n";
+    open my $fh, '<', CONANFILE or die "Unable to open @{[CONANFILE]}: $!\n";
 
     my $in_requires = 0;
     my @deps;
 
     while (my $line = <$fh>) {
+        chomp $line;
+
+        # check for section headers
         if ($line =~ /^\[requires\]/) {
             $in_requires = 1;
             next;
@@ -24,10 +30,9 @@ sub extract_dependencies {
         $in_requires = 0 if $line =~ /^\[/;
         next unless $in_requires;
 
-        chomp $line;
         $line =~ s/#.*$//;        # remove comments
         $line =~ s/^\s+|\s+$//g;  # trim whitespace
-        next unless $line;
+        next unless $line;        # skip empty lines
 
         push @deps, $line;
     }
@@ -38,7 +43,7 @@ sub extract_dependencies {
 
 sub version_compare {
     my ($a, $b) = @_;
-    return eval { version->parse($a) <=> version->parse($b) } || ($a cmp $b);
+    return eval { version->parse($a) <=> version->parse($b) } // ($a cmp $b);
 }
 
 sub latest_version_from {
@@ -73,7 +78,7 @@ sub check_dependency {
         return;
     }
 
-    my $output = `conan search $dep_name -r $CONAN_REMOTE 2>&1`;
+    my $output = `conan search $dep_name -r @{[CONAN_REMOTE]} 2>&1`;
 
     if ($? != 0) {
         printf "⚠ %s search failed (current %s)\n", $dep_name, $current_version;
@@ -95,14 +100,49 @@ sub check_dependency {
     }
 }
 
-say "Checking for Conan dependency updates...";
-my @dependencies = extract_dependencies();
+sub main {
+    pod2usage(-verbose => 2, -exitval => 0) if @ARGV && $ARGV[0] eq '--help';
 
-unless (@dependencies) {
-    say "No dependencies found in $CONANFILE";
-    exit 0;
+    say "Checking for Conan dependency updates...";
+
+    my @dependencies = extract_dependencies();
+
+    unless (@dependencies) {
+        say "No dependencies found in @{[CONANFILE]}";
+        exit 0;
+    }
+
+    for my $dep (@dependencies) {
+        check_dependency($dep);
+    }
 }
 
-for my $dep (@dependencies) {
-    check_dependency($dep);
-}
+main();
+
+__END__
+
+=head1 NAME
+
+check-deps.pl - Check for updated Conan dependencies
+
+=head1 SYNOPSIS
+
+perl check-deps.pl [--help]
+
+=head1 DESCRIPTION
+
+This script checks the conanfile.txt for dependencies and compares their current
+versions against the latest versions available in the Conan remote repository.
+It reports which dependencies are up-to-date and which have updates available.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--help>
+
+Display this help message and exit.
+
+=back
+
+=cut

@@ -31,7 +31,7 @@
 - **C++ Standard**: C++23 with strict compiler warnings (`-Wall -Wextra -Werror`)
 - **Library Type**: Header-only library - all implementation in headers (`.hpp` and `.inl.hpp` files)
 - **Include Order**: Project headers first (`"ringbuffer/*.hpp"`), then standard library (`<cstddef>`, `<atomic>`, etc.), then external dependencies (Boost, Catch2)
-- **Formatting**: Use `.clang-format` config (LLVM base, 4-space indent, 120 char limit, custom brace wrapping with `PointerAlignment: Middle`)
+- **Formatting**: Use `.clang-format` config (LLVM base, 4-space indent, 120 char limit, custom brace wrapping with `PointerAlignment: Middle`).  Ensure there is newline at end of file.
 - **Static Analysis**: Use `.clang-tidy` config when enabled (comprehensive checks with low-level construct exceptions for lock-free/shared-memory code)
 - **Types**: Use `std::size_t` for sizes/counts, `std::string_view` for string parameters, concepts for template constraints
 - **Naming**:
