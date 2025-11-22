@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <string>
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -18,7 +17,6 @@
 
 #include <cstdio>
 #include <cassert>
-#include <cerrno>
 #include <climits>
 
 #include <unistd.h>
