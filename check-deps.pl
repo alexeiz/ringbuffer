@@ -41,23 +41,18 @@ sub extract_dependencies {
     return @deps;
 }
 
-sub version_compare {
-    my ($a, $b) = @_;
-    return eval { version->parse($a) <=> version->parse($b) } // ($a cmp $b);
-}
-
 sub latest_version_from {
     my ($dep_name, $output) = @_;
     my @versions;
 
     for my $line (split /\n/, $output) {
         if ($line =~ /^\s*\Q$dep_name\E\/([0-9A-Za-z_.+\-]+)/) {
-            push @versions, $1;
+            push @versions, version->parse($1);
         }
     }
 
     return unless @versions;
-    @versions = sort { version_compare($a, $b) } @versions;
+    @versions = sort { $a <=> $b } @versions;
     return $versions[-1];
 }
 
@@ -72,6 +67,7 @@ sub check_dependency {
     }
 
     my ($current_version) = split /@/, $rest, 2;
+    $current_version = version->parse($current_version);
 
     unless (defined $current_version && length $current_version) {
         say "⚠ Unable to determine current version for $entry";
@@ -93,7 +89,7 @@ sub check_dependency {
         return;
     }
 
-    if (version_compare($current_version, $latest_version) == 0) {
+    if ($current_version == $latest_version) {
         printf "✓ %s is up to date (version %s)\n", $dep_name, $current_version;
     } else {
         printf "⚠ %s update available (%s → %s)\n", $dep_name, $current_version, $latest_version;
