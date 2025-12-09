@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 use version;
+use feature 'defer';
+no warnings 'experimental::defer';
 use feature 'say';
 use Pod::Usage;
 
@@ -14,6 +16,7 @@ use constant {
 
 sub extract_dependencies {
     open my $fh, '<', CONANFILE or die "Unable to open @{[CONANFILE]}: $!\n";
+    defer { close $fh }
 
     my $in_requires = 0;
     my @deps;
@@ -37,7 +40,6 @@ sub extract_dependencies {
         push @deps, $line;
     }
 
-    close $fh;
     return @deps;
 }
 
