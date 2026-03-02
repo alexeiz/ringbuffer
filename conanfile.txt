@@ -1,6 +1,9 @@
 [requires]
-boost/1.89.0
-catch2/3.12.0
+boost/1.90.0
+catch2/3.13.0
+
+[options]
+boost/*:without_cobalt=True
 
 [generators]
 CMakeDeps
