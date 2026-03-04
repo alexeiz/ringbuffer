@@ -11,36 +11,27 @@ use Pod::Usage;
 # Configuration
 use constant {
     CONAN_REMOTE => 'conancenter',
-    CONANFILE    => 'conanfile.txt',
+    CONANFILE    => 'conanfile.py',
 };
 
 sub extract_dependencies {
     open my $fh, '<', CONANFILE or die "Unable to open @{[CONANFILE]}: $!\n";
     defer { close $fh }
 
-    my $in_requires = 0;
-    my @deps;
+    local $/;
+    my $content = <$fh>;
 
-    while (my $line = <$fh>) {
-        chomp $line;
-
-        # check for section headers
-        if ($line =~ /^\[requires\]/) {
-            $in_requires = 1;
-            next;
+    my ($requires_block) = $content =~ /(?:^|\n)\s*requires\s*=\s*(\((?:.*?)\)|\[(?:.*?)\])/s;
+    if (defined $requires_block) {
+        my @deps;
+        while ($requires_block =~ /["']([^"']+)["']/g) {
+            push @deps, $1;
         }
-
-        $in_requires = 0 if $line =~ /^\[/;
-        next unless $in_requires;
-
-        $line =~ s/#.*$//;        # remove comments
-        $line =~ s/^\s+|\s+$//g;  # trim whitespace
-        next unless $line;        # skip empty lines
-
-        push @deps, $line;
+        return @deps;
     }
 
-    return @deps;
+    my ($requires_single) = $content =~ /(?:^|\n)\s*requires\s*=\s*["']([^"']+)["']/;
+    return defined $requires_single ? ($requires_single) : ();
 }
 
 sub latest_version_from {
@@ -129,7 +120,7 @@ perl check-deps.pl [--help]
 
 =head1 DESCRIPTION
 
-This script checks the conanfile.txt for dependencies and compares their current
+This script checks the conanfile.py for dependencies and compares their current
 versions against the latest versions available in the Conan remote repository.
 It reports which dependencies are up-to-date and which have updates available.
 
