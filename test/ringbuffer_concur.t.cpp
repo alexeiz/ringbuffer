@@ -24,7 +24,6 @@
 
 namespace
 {
-
 using namespace std;
 using namespace std::literals;
 
@@ -50,7 +49,6 @@ struct shm_guard
 
     char const * name_;
 };
-
 
 class sync_pipe
 {
@@ -92,7 +90,6 @@ private:
     int & pipe_write_ = pipe_[1];
 };
 
-
 inline unsigned long now_tsc()
 {
     union
@@ -117,13 +114,13 @@ inline auto now_chrono() { return chrono::high_resolution_clock::now(); }
 inline unsigned get_cpufreq_khz()
 {
     ifstream sys_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
-    sys_file.exceptions(ios::badbit | ios::failbit);
 
-    unsigned cur_freq = 1;
-    sys_file >> cur_freq;
-    return cur_freq;
+    unsigned cur_freq = 0;
+    if (sys_file >> cur_freq)
+        return cur_freq;
+
+    return 0;
 }
-
 
 // simple synchronized logger implementation
 void log_impl() { clog << endl; }
@@ -144,7 +141,6 @@ void log_msg(Args &&... args)
     log_impl(std::forward<Args>(args)...);
 }
 
-
 template <size_t Size>
 struct data_item
 {
@@ -164,7 +160,6 @@ static_assert(sizeof(data_item<16>) == 16, "wrong data_item size");
 static_assert(sizeof(data_item<32>) == 32, "wrong data_item size");
 static_assert(sizeof(data_item<64>) == 64, "wrong data_item size");
 
-
 // synchronize writer and reader processes
 sync_pipe reader_sync;
 sync_pipe writer_sync;
@@ -173,7 +168,6 @@ constexpr unsigned sentry(-1);  // special sequence number value to signal reade
 constexpr char const * ring_buffer_name = "ringbuffer_concur_test";
 vector<pid_t> reader_pids;
 vector<thread> reader_threads;
-
 
 template <typename Item>
 void run_reader_impl()
@@ -232,9 +226,12 @@ void run_reader_impl()
     log_msg("reader ", getpid(), ":", this_thread::get_id(), "\n",
             "  gaps            : ", gaps, "\n",
             "  errors          : ", errors, "\n",
-            "  throughput      : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec\n",
-            "  average latency : ", latency / double(latency_items), " cycles, ", latency / double(latency_items) / cpu_khz * 1000, " usec\n",
-            "  min latency     : ", latency_min, " cycles, ", double(latency_min) / cpu_khz * 1000, " usec");
+            "  throughput      : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec\n");
+    if (cpu_khz != 0)
+        log_msg("  average latency : ", latency / double(latency_items), " cycles, ", latency / double(latency_items) / cpu_khz * 1000, " usec\n");
+    else
+        log_msg("  average latency : ", latency / double(latency_items), " cycles\n");
+    log_msg("  min latency     : ", latency_min, " cycles, ", double(latency_min) / cpu_khz * 1000, " usec");
     // clang-format on
 }
 
@@ -397,9 +394,7 @@ void run_test(unsigned readers, size_t item_size, unsigned item_count, size_t rb
     else
         wait_reader_processes();
 }
-
 }  // anonymous namespace
-
 
 int main(int argc, char * argv[])
 try
