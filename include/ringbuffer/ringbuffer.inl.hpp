@@ -9,8 +9,44 @@
 #include <utility>
 #include <new>
 
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
+
 namespace rb
 {
+namespace detail
+{
+
+/// \returns the L1 data cache line size reported by the OS
+inline long get_l1_cache_line_size() noexcept
+{
+#if defined(__APPLE__)
+    std::size_t value = 0;
+    std::size_t size = sizeof(value);
+    if (sysctlbyname("hw.cachelinesize", &value, &size, nullptr, 0) == 0)
+        return static_cast<long>(value);
+    return 128;  // the most common cache line size, used as a fallback
+#else
+    return sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+#endif
+}
+
+/// \returns the system page size in bytes
+inline long get_page_size() noexcept
+{
+#if defined(__APPLE__)
+    std::size_t value = 0;
+    std::size_t size = sizeof(value);
+    if (sysctlbyname("hw.pagesize", &value, &size, nullptr, 0) == 0)
+        return static_cast<long>(value);
+    return sysconf(_SC_PAGESIZE);
+#else
+    return sysconf(_SC_PAGESIZE);
+#endif
+}
+}  // namespace detail
+
 // ring_buffer implementation
 
 template <ring_buffer_value T>
@@ -25,10 +61,10 @@ ring_buffer<T>::ring_buffer(std::string_view name, std::size_t capacity, bool re
 
     // data alignment relies on the statically defined cache line size being no less than the number reported
     // by the OS
-    if (std::cmp_greater(sysconf(_SC_LEVEL1_DCACHE_LINESIZE), detail::ring_buffer_cache_linesize))
+    if (std::cmp_greater(detail::get_l1_cache_line_size(), detail::ring_buffer_cache_linesize))
         throw std::runtime_error("system cache line size is not equal to the expected value");
 
-    std::size_t page_size(sysconf(_SC_PAGESIZE));  // shared memory is aligned on system page size
+    std::size_t page_size(detail::get_page_size());  // shared memory is aligned on system page size
     if (sizeof(data_t) > page_size)
         throw std::runtime_error("ring_buffer cannot store objects larger than the system page size");
 
