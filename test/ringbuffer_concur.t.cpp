@@ -92,27 +92,39 @@ private:
 
 inline unsigned long now_tsc()
 {
-    union
-    {
-        struct
-        {
-            unsigned lo;
-            unsigned hi;
-        } regs;
-
-        unsigned long tsc;
-    } ts;
-
-    // __asm__ __volatile__("rdtscp" : "=a"(ts.regs.lo), "=c"(ts.regs.hi)::"%rdx");
-    // __asm__ __volatile__("lfence" ::: "memory");
-    __asm__ __volatile__("rdtsc" : "=a"(ts.regs.lo), "=d"(ts.regs.hi));
-    return ts.tsc;
+#if defined(__aarch64__)
+    unsigned long tsc;
+    __asm__ __volatile__("isb" ::: "memory");
+    __asm__ __volatile__("mrs %0, cntvct_el0" : "=r"(tsc));
+    return tsc;
+#elif defined(__arm__)
+    unsigned lo, hi;
+    __asm__ __volatile__("isb" ::: "memory");
+    __asm__ __volatile__("mrrc p15, 1, %0, %1, c14" : "=r"(lo), "=r"(hi));
+    return (static_cast<unsigned long>(hi) << 32) | lo;
+#elif defined(__x86_64__)
+    unsigned lo, hi;
+    __asm__ __volatile__("lfence" ::: "memory");
+    __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
+    return (static_cast<unsigned long>(hi) << 32) | lo;
+#else
+#error "now_tsc() is not implemented for this architecture"
+#endif
 }
 
 inline auto now_chrono() { return chrono::high_resolution_clock::now(); }
 
-inline unsigned get_cpufreq_khz()
+inline unsigned long get_timestamp_freq_khz()
 {
+#if defined(__aarch64__)
+    unsigned long freq;
+    __asm__ __volatile__("mrs %0, cntfrq_el0" : "=r"(freq));
+    return freq / 1000;
+#elif defined(__arm__)
+    unsigned freq;
+    __asm__ __volatile__("mrc p15, 0, %0, c14, c0, 0" : "=r"(freq));
+    return static_cast<unsigned long>(freq) / 1000;
+#else
     ifstream sys_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
 
     unsigned cur_freq = 0;
@@ -120,6 +132,16 @@ inline unsigned get_cpufreq_khz()
         return cur_freq;
 
     return 0;
+#endif
+}
+
+inline char const * timestamp_unit()
+{
+#if defined(__aarch64__) || defined(__arm__)
+    return "ticks";
+#else
+    return "cycles";
+#endif
 }
 
 // simple synchronized logger implementation
@@ -220,18 +242,24 @@ void run_reader_impl()
     double items_sec =
         read_items / (double(chrono::duration_cast<chrono::nanoseconds>(end - start).count()) / 1000'000'000);
     double bytes_sec = items_sec * sizeof(Item);
-    auto cpu_khz = get_cpufreq_khz();
+    auto timestamp_khz = get_timestamp_freq_khz();
+    auto avg_latency = latency / double(latency_items);
 
     // clang-format off
-    log_msg("reader ", getpid(), ":", this_thread::get_id(), "\n",
-            "  gaps            : ", gaps, "\n",
-            "  errors          : ", errors, "\n",
-            "  throughput      : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec\n");
-    if (cpu_khz != 0)
-        log_msg("  average latency : ", latency / double(latency_items), " cycles, ", latency / double(latency_items) / cpu_khz * 1000, " usec\n");
+    if (timestamp_khz != 0)
+        log_msg("reader ", getpid(), ":", this_thread::get_id(), "\n",
+                "  gaps            : ", gaps, "\n",
+                "  errors          : ", errors, "\n",
+                "  throughput      : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec", "\n",
+                "  average latency : ", avg_latency, " ", timestamp_unit(), ", ", avg_latency / timestamp_khz * 1000, " usec", "\n",
+                "  min latency     : ", latency_min, " ", timestamp_unit(), ", ", double(latency_min) / timestamp_khz * 1000, " usec");
     else
-        log_msg("  average latency : ", latency / double(latency_items), " cycles\n");
-    log_msg("  min latency     : ", latency_min, " cycles, ", double(latency_min) / cpu_khz * 1000, " usec");
+        log_msg("reader ", getpid(), ":", this_thread::get_id(), "\n",
+                "  gaps            : ", gaps, "\n",
+                "  errors          : ", errors, "\n",
+                "  throughput      : ", items_sec, " items/sec, ", bytes_sec, " bytes/sec", "\n",
+                "  average latency : ", avg_latency, " ", timestamp_unit(), ", ", avg_latency / timestamp_khz * 1000, " usec", "\n",
+                "  min latency     : ", latency_min, " ", timestamp_unit(), ", ", double(latency_min) / timestamp_khz * 1000, " usec");
     // clang-format on
 }
 
