@@ -12,6 +12,7 @@ option(ENABLE_CLANG_TIDY "Enable clang-tidy checks" OFF)
 # dependencies
 include(cmake/deps.cmake)
 include(cmake/clang-tidy.cmake)
+include(cmake/target-options.cmake)
 
 # executable
 add_library(ringbuffer INTERFACE)
