@@ -25,7 +25,12 @@ namespace detail
 {
 // constants
 static constexpr int ring_buffer_version = 1;
-static constexpr std::size_t ring_buffer_cache_linesize = 64;
+static constexpr std::size_t ring_buffer_cache_linesize =
+#if defined(__APPLE__)
+    128;
+#else
+    64;
+#endif
 
 // ring buffer header information
 struct ring_buffer_header
