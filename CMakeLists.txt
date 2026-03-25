@@ -6,6 +6,10 @@ project(ringbuffer
     LANGUAGES CXX
 )
 
+# conan integration using cmake-conan
+list(PREPEND CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/cmake/conan_provider.cmake")
+list(REMOVE_DUPLICATES CMAKE_PROJECT_TOP_LEVEL_INCLUDES)
+
 # option to enable clang-tidy
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks" OFF)
 
