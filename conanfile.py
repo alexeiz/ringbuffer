@@ -3,7 +3,7 @@ from conan import ConanFile
 
 class RingBufferConan(ConanFile):
     name = "ringbuffer"
-    version = "0.1.3"
+    version = "0.1.4"
     settings = "os", "arch", "compiler", "build_type"
     generators = "CMakeDeps"
 
