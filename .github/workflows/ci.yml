@@ -40,9 +40,9 @@ jobs:
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
-          cmake --preset=debug
+          cmake --preset=debug -G "Visual Studio 18 2026" -A x64
         ) else (
-          cmake --preset=release
+          cmake --preset=release -G "Visual Studio 18 2026" -A x64
         )
 
     - name: Build (Linux/macOS)
