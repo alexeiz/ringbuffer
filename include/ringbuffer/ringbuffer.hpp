@@ -208,8 +208,8 @@ public:
     ring_buffer_iterator<T> end();
 
 private:
-    void adjust_read_pos(unsigned long pos) const;
-    void spin_wait(unsigned long pos) const;
+    void adjust_read_pos(uint64_t pos) const;
+    void spin_wait(uint64_t pos) const;
 
 private:
     std::shared_ptr<ring_buffer_store> store_;  ///< shared memory backing store for the ring buffer

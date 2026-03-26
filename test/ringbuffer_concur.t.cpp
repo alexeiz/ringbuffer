@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <mutex>
 
+#include <cstdint>
 #include <cstdio>
 #include <cassert>
 #include <climits>
@@ -104,10 +105,10 @@ private:
     int & pipe_write_ = pipe_[1];
 };
 
-inline unsigned long now_tsc()
+inline uint64_t now_tsc()
 {
 #if defined(__aarch64__)
-    unsigned long tsc;
+    uint64_t tsc;
     __asm__ __volatile__("isb" ::: "memory");
     __asm__ __volatile__("mrs %0, cntvct_el0" : "=r"(tsc));
     return tsc;
@@ -115,7 +116,7 @@ inline unsigned long now_tsc()
     unsigned lo, hi;
     __asm__ __volatile__("isb" ::: "memory");
     __asm__ __volatile__("mrrc p15, 1, %0, %1, c14" : "=r"(lo), "=r"(hi));
-    return (static_cast<unsigned long>(hi) << 32) | lo;
+    return (static_cast<uint64_t>(hi) << 32) | lo;
 #elif defined(__x86_64__) || defined(_M_X64) || defined(_M_IX86)
 #if defined(_MSC_VER)
     return __rdtsc();
@@ -123,7 +124,7 @@ inline unsigned long now_tsc()
     unsigned lo, hi;
     __asm__ __volatile__("lfence" ::: "memory");
     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
-    return (static_cast<unsigned long>(hi) << 32) | lo;
+    return (static_cast<uint64_t>(hi) << 32) | lo;
 #endif
 #else
 #error "now_tsc() is not implemented for this architecture"
@@ -132,20 +133,20 @@ inline unsigned long now_tsc()
 
 inline auto now_chrono() { return chrono::high_resolution_clock::now(); }
 
-inline unsigned long get_timestamp_freq_khz()
+inline uint64_t get_timestamp_freq_khz()
 {
 #if defined(__aarch64__)
-    unsigned long freq;
+    uint64_t freq;
     __asm__ __volatile__("mrs %0, cntfrq_el0" : "=r"(freq));
     return freq / 1000;
 #elif defined(__arm__)
     unsigned freq;
     __asm__ __volatile__("mrc p15, 0, %0, c14, c0, 0" : "=r"(freq));
-    return static_cast<unsigned long>(freq) / 1000;
+    return static_cast<uint64_t>(freq) / 1000;
 #else
     ifstream sys_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
 
-    unsigned cur_freq = 0;
+    uint64_t cur_freq = 0;
     if (sys_file >> cur_freq)
         return cur_freq;
 
@@ -184,14 +185,14 @@ void log_msg(Args &&... args)
 template <size_t Size>
 struct data_item
 {
-    constexpr static size_t payload_size = (Size - sizeof(unsigned long) - sizeof(int)) / sizeof(int);
+    constexpr static size_t payload_size = (Size - sizeof(uint64_t) - sizeof(int)) / sizeof(int);
 
     data_item(unsigned n)
         : timestamp{now_tsc()}
         , seq{n}
     {}
 
-    unsigned long timestamp;
+    uint64_t timestamp;
     unsigned seq;
     array<int, payload_size> payload;
 };
@@ -222,8 +223,8 @@ void run_reader_impl()
     int gaps = 0;
     int errors = 0;
     unsigned prev = sentry;
-    unsigned long latency = 0;
-    unsigned long latency_min = ULONG_MAX;
+    uint64_t latency = 0;
+    uint64_t latency_min = ULLONG_MAX;
     int latency_items = 0;
     auto start = now_chrono();
 

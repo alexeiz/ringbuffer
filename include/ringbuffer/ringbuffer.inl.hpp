@@ -187,7 +187,7 @@ inline std::size_t ring_buffer_reader<T>::size() const
 }
 
 template <ring_buffer_value T>
-inline void ring_buffer_reader<T>::adjust_read_pos(unsigned long pos) const
+inline void ring_buffer_reader<T>::adjust_read_pos(uint64_t pos) const
 {
     unsigned first = header_t::first(pos);
     if (first > read_pos_)
@@ -199,7 +199,7 @@ inline void ring_buffer_reader<T>::adjust_read_pos(unsigned long pos) const
 }
 
 template <ring_buffer_value T>
-inline void ring_buffer_reader<T>::spin_wait(unsigned long pos) const
+inline void ring_buffer_reader<T>::spin_wait(uint64_t pos) const
 {
     while (read_pos_ >= header_t::last(pos))
     {
