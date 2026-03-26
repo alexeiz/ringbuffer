@@ -18,6 +18,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up MSVC x64
+      if: matrix.os == 'windows-2025-vs2026'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
     - name: Install Conan
       uses: conan-io/setup-conan@v1
 
