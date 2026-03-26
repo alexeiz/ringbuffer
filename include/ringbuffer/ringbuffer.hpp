@@ -7,6 +7,7 @@
 #include <boost/iterator/iterator_facade.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <string_view>
 #include <memory>
 #include <atomic>
@@ -45,42 +46,42 @@ struct ring_buffer_header
 
     union position_t
     {
-        unsigned long lpos;
+        uint64_t lpos;
         unsigned upos[2];
 
-        position_t(unsigned long p)
+        position_t(uint64_t p)
             : lpos{p}
         {}
         position_t(unsigned f, unsigned s)
             : upos{f, s}
         {}
 
-        static_assert(sizeof(unsigned long) >= 2 * sizeof(unsigned), "two counters should fit into one long value");
+        static_assert(sizeof(uint64_t) >= 2 * sizeof(unsigned), "two counters should fit into one 64-bit value");
     };
 
-    static constexpr unsigned first(unsigned long pos)
+    static constexpr unsigned first(uint64_t pos)
     {
         position_t p = {pos};
         return p.upos[0];
     }
 
-    static constexpr unsigned last(unsigned long pos)
+    static constexpr unsigned last(uint64_t pos)
     {
         position_t p = {pos};
         return p.upos[1];
     }
 
-    static constexpr unsigned long make_positions(unsigned first, unsigned last)
+    static constexpr uint64_t make_positions(unsigned first, unsigned last)
     {
         position_t p = {first, last};
         return p.lpos;
     }
 
-    int version;                           ///< version of the ring buffer to ensure reader/write compatibility
-    std::size_t data_size;                 ///< size (in bytes) of data items inside the ring buffer
-    std::size_t data_offset;               ///< offset at which data items start
-    std::size_t capacity;                  ///< maximum number of items the ring buffer can contain
-    std::atomic<unsigned long> positions;  ///< combined first/last element positions
+    int version;                      ///< version of the ring buffer to ensure reader/write compatibility
+    std::size_t data_size;            ///< size (in bytes) of data items inside the ring buffer
+    std::size_t data_offset;          ///< offset at which data items start
+    std::size_t capacity;             ///< maximum number of items the ring buffer can contain
+    std::atomic<uint64_t> positions;  ///< combined first/last element positions
 };
 
 // ring buffer data item

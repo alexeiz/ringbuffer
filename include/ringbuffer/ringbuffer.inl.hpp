@@ -4,7 +4,14 @@
 
 #include <algorithm>
 #include <limits>
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 #include <stdexcept>
 #include <utility>
 #include <new>
@@ -21,7 +28,20 @@ namespace detail
 /// \returns the L1 data cache line size reported by the OS
 inline long get_l1_cache_line_size() noexcept
 {
-#if defined(__APPLE__)
+#if defined(_WIN32)
+    SYSTEM_LOGICAL_PROCESSOR_INFORMATION proc_info[64];
+    DWORD proc_info_size = sizeof(proc_info);
+    if (GetLogicalProcessorInformation(proc_info, &proc_info_size))
+    {
+        for (DWORD i = 0; i != proc_info_size / sizeof(proc_info); ++i)
+        {
+            if (proc_info[i].Relationship == RelationCache && proc_info[i].Cache.Level == 1 &&
+                (proc_info[i].Cache.Type == CacheData || proc_info[i].Cache.Type == CacheUnified))
+                return static_cast<long>(proc_info[i].Cache.LineSize);
+        }
+    }
+    return 64;  // default fallback for Windows
+#elif defined(__APPLE__)
     std::size_t value = 0;
     std::size_t size = sizeof(value);
     if (sysctlbyname("hw.cachelinesize", &value, &size, nullptr, 0) == 0)
@@ -35,7 +55,11 @@ inline long get_l1_cache_line_size() noexcept
 /// \returns the system page size in bytes
 inline long get_page_size() noexcept
 {
-#if defined(__APPLE__)
+#if defined(_WIN32)
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    return static_cast<long>(si.dwPageSize);
+#elif defined(__APPLE__)
     std::size_t value = 0;
     std::size_t size = sizeof(value);
     if (sysctlbyname("hw.pagesize", &value, &size, nullptr, 0) == 0)

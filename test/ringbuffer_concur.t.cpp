@@ -18,9 +18,23 @@
 #include <cstdio>
 #include <cassert>
 #include <climits>
+#if defined(_MSC_VER)
+#include <intrin.h>
+#include <io.h>
+#define pipe(fds) _pipe(fds, 4096, 0)
+#define read      _read
+#define write     _write
+#define close     _close
+using pid_t = int;
+#endif
 
+#if defined(_WIN32)
+#include <process.h>
+#define getpid _getpid
+#else
 #include <unistd.h>
 #include <sys/wait.h>
+#endif
 
 namespace
 {
@@ -102,11 +116,15 @@ inline unsigned long now_tsc()
     __asm__ __volatile__("isb" ::: "memory");
     __asm__ __volatile__("mrrc p15, 1, %0, %1, c14" : "=r"(lo), "=r"(hi));
     return (static_cast<unsigned long>(hi) << 32) | lo;
-#elif defined(__x86_64__)
+#elif defined(__x86_64__) || defined(_M_X64) || defined(_M_IX86)
+#if defined(_MSC_VER)
+    return __rdtsc();
+#else
     unsigned lo, hi;
     __asm__ __volatile__("lfence" ::: "memory");
     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
     return (static_cast<unsigned long>(hi) << 32) | lo;
+#endif
 #else
 #error "now_tsc() is not implemented for this architecture"
 #endif
@@ -360,6 +378,10 @@ void run_writer(unsigned readers, unsigned item_size, unsigned item_count, unsig
 
 void create_reader_processes(unsigned readers, size_t item_size)
 {
+#if defined(_WIN32)
+    throw std::runtime_error(
+        "Multiprocessing tests are not supported on Windows yet. Please use --use-threads instead.");
+#else
     for (unsigned i = 0; i != readers; ++i)
     {
         if (auto pid = fork())
@@ -380,15 +402,18 @@ void create_reader_processes(unsigned readers, size_t item_size)
             exit(0);
         }
     }
+#endif
 }
 
 void wait_reader_processes()
 {
+#if !defined(_WIN32)
     for (auto rid : reader_pids)
     {
         int status = 0;
         waitpid(rid, &status, 0);
     }
+#endif
 }
 
 void create_reader_threads(unsigned readers, size_t item_size)
@@ -465,12 +490,20 @@ try
     }
 
     // parameter validation
-    item_size = std::max(item_size, 16ul);
+    item_size = std::max(item_size, size_t(16));
     item_size = ((item_size - 1) / 16 + 1) * 16;  // align to 16 bytes
 
     // adjust to the power of 2
     if ((rb_size & (rb_size - 1)) != 0)
+    {
+#if defined(_MSC_VER)
+        unsigned long leading_zero = 0;
+        if (_BitScanReverse64(&leading_zero, rb_size))
+            rb_size = 1ull << (leading_zero + 1);
+#else
         rb_size = 1ul << (CHAR_BIT * sizeof(rb_size) - __builtin_clzl(rb_size));
+#endif
+    }
 
     if (opt.contains("use-threads"))
         use_threads = true;
