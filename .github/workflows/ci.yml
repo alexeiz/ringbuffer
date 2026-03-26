@@ -80,5 +80,5 @@ jobs:
         if "${{ matrix.build-type }}"=="Debug" (
           ctest --preset=debug -C Debug --output-on-failure
         ) else (
-          ctest --preset=release -C Release --output-on-failure
+          ctest --preset=release -C RelWithDebInfo --output-on-failure
         )
