@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <boost/interprocess/shared_memory_object.hpp>
-#include <boost/interprocess/mapped_region.hpp>
+#include "ipc.hpp"
+
 #include <cstddef>
 #include <new>
 #include <string>
