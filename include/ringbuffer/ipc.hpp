@@ -1,5 +1,8 @@
 #pragma once
 
+#pragma warning(push)
+#pragma warning(disable: 4068)
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnull-dereference"
 
@@ -8,3 +11,5 @@
 #include <boost/interprocess/managed_shared_memory.hpp>
 
 #pragma GCC diagnostic pop
+
+#pragma warning(pop)
