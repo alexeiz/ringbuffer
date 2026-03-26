@@ -61,9 +61,9 @@ jobs:
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
-          cmake -B build/debug -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug
+          cmake --preset=debug
         ) else (
-          cmake -B build/release -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --preset=release
         )
 
     - name: Build (Linux/macOS)
@@ -80,9 +80,9 @@ jobs:
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
-          cmake --build build/debug --config Debug
+          cmake --build --preset=debug
         ) else (
-          cmake --build build/release --config RelWithDebInfo
+          cmake --build --preset=release
         )
 
     - name: Test (Linux/macOS)
@@ -99,7 +99,7 @@ jobs:
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
-          ctest --test-dir build/debug -C Debug --output-on-failure
+          ctest --preset=debug --output-on-failure
         ) else (
-          ctest --test-dir build/release -C RelWithDebInfo --output-on-failure
+          ctest --preset=release --output-on-failure
         )
