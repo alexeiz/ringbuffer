@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-2025-vs2026, macos-latest]
-        build-type: [Debug, RelWithDebInfo]
+        build-mode: [debug, release]
 
     steps:
     - uses: actions/checkout@v4
@@ -23,62 +23,13 @@ jobs:
 
     - name: Install Conan dependencies
       run: |
-        conan install . --output-folder=build/debug --build=missing -s build_type=Debug
-        conan install . --output-folder=build/release --build=missing -s build_type=Release
+        conan install . --output-folder=build/${{ matrix.build-mode }} --build=missing -s build_type=${{ matrix.build-mode == 'debug' && 'Debug' || 'Release' }}
 
-    - name: Configure CMake (Linux/macOS)
-      if: matrix.os != 'windows-2025-vs2026'
-      run: |
-        if [ "${{ matrix.build-type }}" = "Debug" ]; then
-          cmake --preset=debug
-        else
-          cmake --preset=release
-        fi
+    - name: Configure CMake
+      run: cmake --preset=${{ matrix.build-mode }}
 
-    - name: Configure CMake (Windows)
-      if: matrix.os == 'windows-2025-vs2026'
-      shell: cmd
-      run: |
-        if "${{ matrix.build-type }}"=="Debug" (
-          cmake --preset=debug -G "Visual Studio 18 2026" -A x64
-        ) else (
-          cmake --preset=release -G "Visual Studio 18 2026" -A x64
-        )
+    - name: Build
+      run: cmake --build --preset=${{ matrix.build-mode }}
 
-    - name: Build (Linux/macOS)
-      if: matrix.os != 'windows-2025-vs2026'
-      run: |
-        if [ "${{ matrix.build-type }}" = "Debug" ]; then
-          cmake --build --preset=debug
-        else
-          cmake --build --preset=release
-        fi
-
-    - name: Build (Windows)
-      if: matrix.os == 'windows-2025-vs2026'
-      shell: cmd
-      run: |
-        if "${{ matrix.build-type }}"=="Debug" (
-          cmake --build --preset=debug
-        ) else (
-          cmake --build --preset=release
-        )
-
-    - name: Test (Linux/macOS)
-      if: matrix.os != 'windows-2025-vs2026'
-      run: |
-        if [ "${{ matrix.build-type }}" = "Debug" ]; then
-          ctest --preset=debug --output-on-failure
-        else
-          ctest --preset=release --output-on-failure
-        fi
-
-    - name: Test (Windows)
-      if: matrix.os == 'windows-2025-vs2026'
-      shell: cmd
-      run: |
-        if "${{ matrix.build-type }}"=="Debug" (
-          ctest --preset=debug -C Debug --output-on-failure
-        ) else (
-          ctest --preset=release -C Debug --output-on-failure
-        )
+    - name: Test
+      run: ctest --preset=${{ matrix.build-mode }}
