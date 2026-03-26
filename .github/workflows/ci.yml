@@ -12,32 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-2025-vs2026, macos-latest]
         build-type: [Debug, RelWithDebInfo]
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Install dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ninja-build gcc g++
-
-    - name: Install dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install ninja
-
-    - name: Install dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install ninja
-
-    - name: Setup CMake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.28'
 
     - name: Install Conan
       uses: conan-io/setup-conan@v1
@@ -48,7 +27,7 @@ jobs:
         conan install . --output-folder=build/release --build=missing -s build_type=Release
 
     - name: Configure CMake (Linux/macOS)
-      if: matrix.os != 'windows-latest'
+      if: matrix.os != 'windows-2025-vs2026'
       run: |
         if [ "${{ matrix.build-type }}" = "Debug" ]; then
           cmake --preset=debug
@@ -57,7 +36,7 @@ jobs:
         fi
 
     - name: Configure CMake (Windows)
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-2025-vs2026'
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
@@ -67,7 +46,7 @@ jobs:
         )
 
     - name: Build (Linux/macOS)
-      if: matrix.os != 'windows-latest'
+      if: matrix.os != 'windows-2025-vs2026'
       run: |
         if [ "${{ matrix.build-type }}" = "Debug" ]; then
           cmake --build --preset=debug
@@ -76,7 +55,7 @@ jobs:
         fi
 
     - name: Build (Windows)
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-2025-vs2026'
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
@@ -86,7 +65,7 @@ jobs:
         )
 
     - name: Test (Linux/macOS)
-      if: matrix.os != 'windows-latest'
+      if: matrix.os != 'windows-2025-vs2026'
       run: |
         if [ "${{ matrix.build-type }}" = "Debug" ]; then
           ctest --preset=debug --output-on-failure
@@ -95,7 +74,7 @@ jobs:
         fi
 
     - name: Test (Windows)
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-2025-vs2026'
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
