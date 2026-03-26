@@ -21,6 +21,24 @@ jobs:
     - name: Install Conan
       uses: conan-io/setup-conan@v1
 
+    - name: Configure Conan Profile (Windows)
+      if: matrix.os == 'windows-2025-vs2026'
+      shell: pwsh
+      run: |
+        $ProfileContent = @"
+        [settings]
+        os=Windows
+        arch=x86_64
+        compiler=msvc
+        compiler.version=193
+        compiler.cppstd=23
+        compiler.runtime=dynamic
+        build_type=Release
+        "@
+
+        $ProfileDir = "$HOME\.conan2\profiles"
+        $ProfileContent | Out-File -FilePath "$ProfileDir\default" -Encoding ascii
+
     - name: Install Conan dependencies
       run: |
         conan install . --output-folder=build/debug --build=missing -s build_type=Debug
@@ -78,7 +96,7 @@ jobs:
       shell: cmd
       run: |
         if "${{ matrix.build-type }}"=="Debug" (
-          ctest --preset=debug --output-on-failure
+          ctest --preset=debug -C Debug --output-on-failure
         ) else (
-          ctest --preset=release --output-on-failure
+          ctest --preset=release -C Release --output-on-failure
         )
