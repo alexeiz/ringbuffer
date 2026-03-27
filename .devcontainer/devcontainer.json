@@ -1,0 +1,25 @@
+{
+  "name": "C++ Development",
+  "dockerFile": "Dockerfile",
+  "features": {},
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "cmake.configureOnOpen": true,
+        "cmake.generator": "Ninja",
+        "C_Cpp.default.cppStandard": "c++23",
+        "C_Cpp.default.compilerPath": "/usr/bin/g++",
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true
+      }
+    }
+  },
+  "postCreateCommand": "cmake --preset=debug",
+  "remoteUser": "vscode"
+}
