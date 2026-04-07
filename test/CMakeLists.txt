@@ -33,3 +33,14 @@ target_link_libraries(ringbuffer_reader
     ringbuffer
 )
 apply_project_options(ringbuffer_reader PRIVATE)
+
+add_executable(test_ringbuffer_async
+    ringbuffer_async.t.cpp
+)
+target_link_libraries(test_ringbuffer_async
+    PRIVATE
+    ${TEST_LIBRARIES}
+    ringbuffer
+)
+apply_project_options(test_ringbuffer_async PRIVATE)
+add_test(NAME ringbuffer_async_tests COMMAND test_ringbuffer_async)

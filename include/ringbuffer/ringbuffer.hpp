@@ -13,6 +13,7 @@
 #include <atomic>
 #include <type_traits>
 #include <optional>
+#include <coroutine>
 
 namespace rb
 {
@@ -261,6 +262,35 @@ private:
 private:
     ring_buffer_reader<T> * reader_;
     T mutable value_;
+};
+
+/// Class `async_ring_buffer_reader` provides an asynchronous (coroutine-based) interface
+/// to read items from the ring buffer. It allows a coroutine to `co_await` on the reader,
+/// suspending execution when the ring buffer is empty.
+template <ring_buffer_value T>
+class async_ring_buffer_reader : public ring_buffer_reader<T>
+{
+public:
+    using ring_buffer_reader<T>::ring_buffer_reader;
+
+    /// Awaiter for `co_await`ing the next item.
+    struct awaiter
+    {
+        async_ring_buffer_reader * reader_;
+
+        bool await_ready() const noexcept { return !reader_->empty(); }
+
+        template <typename Promise>
+        void await_suspend(std::coroutine_handle<Promise> /* h */) const noexcept
+        {
+            // The caller handles scheduling/resuming. We just yield.
+        }
+
+        T await_resume() const { return reader_->get(); }
+    };
+
+    /// `co_await` operator.
+    awaiter operator co_await() noexcept { return awaiter{this}; }
 };
 
 }  // namespace rb
