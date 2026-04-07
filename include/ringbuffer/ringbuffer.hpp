@@ -286,10 +286,7 @@ public:
             // The caller handles scheduling/resuming. We just yield.
         }
 
-        T await_resume() const
-        {
-            return reader_->get();
-        }
+        T await_resume() const { return reader_->get(); }
     };
 
     /// `co_await` operator.
