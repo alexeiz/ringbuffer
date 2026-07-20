@@ -463,7 +463,7 @@ endfunction()
 function(conan_install)
     set(conan_output_folder ${CMAKE_BINARY_DIR}/conan)
     # Invoke "conan install" with the provided arguments
-    set(conan_args ${conan_args} -of=${conan_output_folder})
+    set(conan_args -of=${conan_output_folder})
     message(STATUS "CMake-Conan: conan install ${CMAKE_SOURCE_DIR} ${conan_args} ${ARGN}")
 
 
@@ -561,6 +561,168 @@ macro(construct_profile_argument argument_variable profile_list)
 endmacro()
 
 
+function(conan_profile_conf_list output_variable profile_json conf_key)
+    set(${output_variable} "" PARENT_SCOPE)
+
+    string(JSON _conan_conf_value ERROR_VARIABLE _conan_conf_error
+           GET "${profile_json}" host conf "${conf_key}")
+    if(_conan_conf_error)
+        return()
+    endif()
+
+    string(JSON _conan_conf_type TYPE "${_conan_conf_value}")
+    if(_conan_conf_type STREQUAL "ARRAY")
+        string(JSON _conan_conf_length LENGTH "${_conan_conf_value}")
+        if(_conan_conf_length GREATER 0)
+            math(EXPR _conan_conf_last_index "${_conan_conf_length} - 1")
+            foreach(_conan_conf_index RANGE ${_conan_conf_last_index})
+                string(JSON _conan_conf_item GET "${_conan_conf_value}" ${_conan_conf_index})
+                list(APPEND _conan_conf_list "${_conan_conf_item}")
+            endforeach()
+            list(JOIN _conan_conf_list " " _conan_conf_flags)
+        endif()
+    elseif(_conan_conf_type STREQUAL "STRING")
+        set(_conan_conf_flags "${_conan_conf_value}")
+    else()
+        return()
+    endif()
+
+    set(${output_variable} "${_conan_conf_flags}" PARENT_SCOPE)
+endfunction()
+
+
+function(conan_append_flags variable flags)
+    # Flags previously applied to ${variable} from a Conan profile, tracked so
+    # they can be replaced (not duplicated or leaked) when the profile changes.
+    set(_conan_tracking_variable "_CONAN_PROFILE_${variable}")
+    set(_conan_previous_flags "${${_conan_tracking_variable}}")
+
+    if("${flags}" STREQUAL "${_conan_previous_flags}")
+        return()
+    endif()
+
+    set(_conan_current_flags "${${variable}}")
+
+    # Remove previously applied profile flags before adding the new ones.
+    if(NOT "${_conan_previous_flags}" STREQUAL "")
+        string(REPLACE " ${_conan_previous_flags}" "" _conan_current_flags "${_conan_current_flags}")
+        string(REPLACE "${_conan_previous_flags}" "" _conan_current_flags "${_conan_current_flags}")
+        string(STRIP "${_conan_current_flags}" _conan_current_flags)
+    endif()
+
+    if(NOT "${flags}" STREQUAL "")
+        if(NOT "${_conan_current_flags}" STREQUAL "")
+            string(APPEND _conan_current_flags " ${flags}")
+        else()
+            set(_conan_current_flags "${flags}")
+        endif()
+        message(STATUS "CMake-Conan: Adding ${variable} from Conan profile: ${flags}")
+    endif()
+
+    set(${variable} "${_conan_current_flags}" CACHE STRING "Flags for the compiler/linker (includes flags from Conan profile)" FORCE)
+    set(${_conan_tracking_variable} "${flags}" CACHE INTERNAL "Flags applied to ${variable} from Conan profile")
+endfunction()
+
+
+function(conan_apply_profile_build_settings)
+    # Preloads compiler paths and build flags from Conan host profiles before
+    # project(). This path is skipped when auto-cmake is in CONAN_HOST_PROFILE (the
+    # project default), because the generated profile does not exist yet at this
+    # early configure stage.
+    if("auto-cmake" IN_LIST CONAN_HOST_PROFILE)
+        message(STATUS "CMake-Conan: Skipping Conan profile build settings preload because CONAN_HOST_PROFILE uses auto-cmake")
+        return()
+    endif()
+
+    if(NOT CONAN_HOST_PROFILE)
+        return()
+    endif()
+
+    # Run-once guard: skip re-reading the profile on reconfigure unless the
+    # selected profiles changed (avoids spawning `conan profile show` on every
+    # configure).
+    set(_conan_profile_settings_key "${CONAN_HOST_PROFILE}|${CONAN_BUILD_PROFILE}")
+    if(_CONAN_PROFILE_SETTINGS_KEY STREQUAL _conan_profile_settings_key)
+        return()
+    endif()
+
+    if(NOT DEFINED CONAN_COMMAND)
+        find_program(CONAN_COMMAND "conan")
+    endif()
+    if(NOT CONAN_COMMAND)
+        message(WARNING "CMake-Conan: Conan executable not found; compiler paths from the profile will not be applied")
+        return()
+    endif()
+
+    set(_profile_args "")
+    foreach(_profile IN LISTS CONAN_HOST_PROFILE)
+        list(APPEND _profile_args "--profile:host=${_profile}")
+    endforeach()
+    foreach(_profile IN LISTS CONAN_BUILD_PROFILE)
+        if(NOT _profile STREQUAL "auto-cmake")
+            list(APPEND _profile_args "--profile:build=${_profile}")
+        endif()
+    endforeach()
+
+    execute_process(
+        COMMAND ${CONAN_COMMAND} profile show ${_profile_args} --format=json
+        RESULT_VARIABLE _conan_profile_result
+        OUTPUT_VARIABLE _conan_profile_json
+        ERROR_VARIABLE _conan_profile_error
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    if(_conan_profile_result)
+        # Non-fatal: older Conan versions may not support `profile show --format=json`.
+        message(WARNING "CMake-Conan: Failed to read Conan profile build settings; "
+                        "compiler/flags from the profile will not be applied: ${_conan_profile_error}")
+        return()
+    endif()
+
+    string(JSON _conan_profile_host ERROR_VARIABLE _conan_profile_json_error
+           GET "${_conan_profile_json}" host)
+    if(_conan_profile_json_error)
+        message(WARNING "CMake-Conan: Conan profile show returned invalid JSON; "
+                        "compiler/flags from the profile will not be applied: ${_conan_profile_json_error}")
+        return()
+    endif()
+    unset(_conan_profile_host)
+
+    string(JSON _conan_profile_compilers ERROR_VARIABLE _conan_profile_json_error
+           GET "${_conan_profile_json}" host conf "tools.build:compiler_executables")
+    if(NOT _conan_profile_json_error AND NOT DEFINED CMAKE_C_COMPILER)
+        string(JSON _conan_profile_c_compiler ERROR_VARIABLE _conan_profile_c_error
+               GET "${_conan_profile_compilers}" c)
+        if(NOT _conan_profile_c_error AND _conan_profile_c_compiler)
+            set(CMAKE_C_COMPILER "${_conan_profile_c_compiler}" CACHE FILEPATH "C compiler" FORCE)
+            message(STATUS "CMake-Conan: Using C compiler from Conan profile: ${CMAKE_C_COMPILER}")
+        endif()
+    endif()
+
+    if(NOT _conan_profile_json_error AND NOT DEFINED CMAKE_CXX_COMPILER)
+        string(JSON _conan_profile_cxx_compiler ERROR_VARIABLE _conan_profile_cxx_error
+               GET "${_conan_profile_compilers}" cpp)
+        if(NOT _conan_profile_cxx_error AND _conan_profile_cxx_compiler)
+            set(CMAKE_CXX_COMPILER "${_conan_profile_cxx_compiler}" CACHE FILEPATH "CXX compiler" FORCE)
+            message(STATUS "CMake-Conan: Using CXX compiler from Conan profile: ${CMAKE_CXX_COMPILER}")
+        endif()
+    endif()
+
+    conan_profile_conf_list(_conan_profile_c_flags "${_conan_profile_json}" "tools.build:cflags")
+    conan_profile_conf_list(_conan_profile_cxx_flags "${_conan_profile_json}" "tools.build:cxxflags")
+    conan_profile_conf_list(_conan_profile_exe_link_flags "${_conan_profile_json}" "tools.build:exelinkflags")
+    conan_profile_conf_list(_conan_profile_shared_link_flags "${_conan_profile_json}" "tools.build:sharedlinkflags")
+
+    conan_append_flags(CMAKE_C_FLAGS "${_conan_profile_c_flags}")
+    conan_append_flags(CMAKE_CXX_FLAGS "${_conan_profile_cxx_flags}")
+    conan_append_flags(CMAKE_EXE_LINKER_FLAGS "${_conan_profile_exe_link_flags}")
+    conan_append_flags(CMAKE_SHARED_LINKER_FLAGS "${_conan_profile_shared_link_flags}")
+    conan_append_flags(CMAKE_MODULE_LINKER_FLAGS "${_conan_profile_shared_link_flags}")
+
+    set(_CONAN_PROFILE_SETTINGS_KEY "${_conan_profile_settings_key}" CACHE INTERNAL "Conan profiles whose build settings were applied")
+endfunction()
+
+
 macro(conan_provide_dependency method package_name)
     set_property(GLOBAL PROPERTY CONAN_PROVIDE_DEPENDENCY_INVOKED TRUE)
     get_property(_conan_install_success GLOBAL PROPERTY CONAN_INSTALL_SUCCESS)
@@ -591,18 +753,42 @@ macro(conan_provide_dependency method package_name)
             endif()
             set(generator "-g;CMakeDeps")
         endif()
+
         get_property(_multiconfig_generator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-        if(NOT _multiconfig_generator)
-            message(STATUS "CMake-Conan: Installing single configuration ${CMAKE_BUILD_TYPE}")
-            conan_install(${_host_profile_flags} ${_build_profile_flags} ${CONAN_INSTALL_ARGS} ${generator})
+        
+        if(DEFINED CONAN_INSTALL_BUILD_CONFIGURATIONS)
+            # Configurations are specified by the project or user
+            set(_build_configs "${CONAN_INSTALL_BUILD_CONFIGURATIONS}")
+            list(LENGTH _build_configs _build_configs_length)
+            if(NOT _multiconfig_generator AND _build_configs_length GREATER 1)
+                message(FATAL_ERROR "cmake-conan: when using a single-config CMake generator, "
+                        "please only specify a single configuration in CONAN_INSTALL_BUILD_CONFIGURATIONS")
+            endif()
+            unset(_build_configs_length)
         else()
-            message(STATUS "CMake-Conan: Installing both Debug and Release")
-            conan_install(${_host_profile_flags} ${_build_profile_flags} -s build_type=Release ${CONAN_INSTALL_ARGS} ${generator})
-            conan_install(${_host_profile_flags} ${_build_profile_flags} -s build_type=Debug ${CONAN_INSTALL_ARGS} ${generator})
+            # No configuration overrides, provide sensible defaults            
+            if(_multiconfig_generator)
+                set(_build_configs Release Debug)
+            else()
+                set(_build_configs ${CMAKE_BUILD_TYPE})
+            endif()
+            
         endif()
+        list(JOIN _build_configs ", " _build_configs_msg)
+        message(STATUS "CMake-Conan: Installing configuration(s): ${_build_configs_msg}")
+        foreach(_build_config IN LISTS _build_configs)
+            set(_self_build_config "")
+            if(NOT _multiconfig_generator AND NOT _build_config STREQUAL "${CMAKE_BUILD_TYPE}")
+                set(_self_build_config -s &:build_type=${CMAKE_BUILD_TYPE})
+            endif()
+            conan_install(${_host_profile_flags} ${_build_profile_flags} -s build_type=${_build_config} ${_self_build_config} ${CONAN_INSTALL_ARGS} ${generator})
+        endforeach()
+        unset(_self_build_config)
+        unset(_multiconfig_generator)
+        unset(_build_configs)
+        unset(_build_configs_msg)
         unset(_host_profile_flags)
         unset(_build_profile_flags)
-        unset(_multiconfig_generator)
         unset(_conan_install_success)
     else()
         message(STATUS "CMake-Conan: find_package(${ARGV1}) found, 'conan install' already ran")
@@ -672,6 +858,10 @@ cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}" CALL conan_provide_dependen
 set(CONAN_HOST_PROFILE "default;auto-cmake" CACHE STRING "Conan host profile")
 set(CONAN_BUILD_PROFILE "default" CACHE STRING "Conan build profile")
 set(CONAN_INSTALL_ARGS "--build=missing" CACHE STRING "Command line arguments for conan install")
+
+# Preload compiler paths and build flags from Conan profiles before project().
+# No-op when CONAN_HOST_PROFILE includes auto-cmake (the project default).
+conan_apply_profile_build_settings()
 
 find_program(_cmake_program NAMES cmake NO_PACKAGE_ROOT_PATH NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH NO_CMAKE_FIND_ROOT_PATH)
 if(NOT _cmake_program)
